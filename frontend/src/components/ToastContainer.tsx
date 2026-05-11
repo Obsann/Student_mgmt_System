@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react";
 import { useToast } from "../contexts/ToastContext";
 

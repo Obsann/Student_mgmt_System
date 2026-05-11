@@ -18,8 +18,7 @@ function TeacherDashboard() {
   const totalStudents = state.students.filter((s) => s.grade === teacher?.assigned_grade && s.section === teacher?.assigned_section).length;
 
   const myMarks = state.marks.filter((m) => m.entered_by === teacherId);
-  const myAttendance = state.attendance.filter((a) => a.recorded_by === teacherId);
-  const todayAtt = myAttendance.filter((a) => a.date === new Date().toISOString().split("T")[0]);
+
 
   return (
     <div className="space-y-6">
@@ -73,7 +72,7 @@ function TeacherDashboard() {
 // TAKE ATTENDANCE (Keyboard-Driven, Low-Click Design)
 // ============================================================
 function TakeAttendance() {
-  const { currentUser, state, recordAttendance, getSubjectsByTeacher, getStudentsByGrade, getAttendanceForDate } = useApp();
+  const { currentUser, state, recordAttendance, getSubjectsByTeacher, getAttendanceForDate } = useApp();
   const teacherId = currentUser?.ref_id || "";
   const mySubjects = getSubjectsByTeacher(teacherId);
 
@@ -434,8 +433,7 @@ function EnterMarks() {
                 const val = scores[student.id] ?? "";
                 const isSaved = saved[student.id];
                 const score = Number(val);
-                const grade = val === "" ? "" : score >= 90 ? "A+" : score >= 80 ? "A" : score >= 75 ? "B+" : score >= 70 ? "B" : score >= 60 ? "C" : score >= 50 ? "D" : "F";
-                const gradeColor = val === "" ? "" : score >= 70 ? "text-green-600" : score >= 50 ? "text-yellow-600" : "text-red-600";
+
                 return (
                   <tr key={student.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
                     <td className="py-2 px-4 text-xs text-gray-400">{i + 1}</td>

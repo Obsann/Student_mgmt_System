@@ -5,7 +5,7 @@ import {
 import { useApp } from "../contexts/AppContext";
 import ProfilePage from "./ProfilePage";
 import { getEthiopianGrade } from "../utils/gradeCalculator";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
 
 // ============================================================
 // STUDENT DASHBOARD
@@ -172,9 +172,7 @@ function MyMarks() {
   const [subjectFilter, setSubjectFilter] = useState("");
 
   const subjects = [...new Set(myMarks.map((m) => m.subject_id))];
-  const filteredMarks = subjectFilter
-    ? myMarks.filter((m) => m.subject_id === subjectFilter)
-    : myMarks;
+
 
   // Group by subject
   const grouped = subjects

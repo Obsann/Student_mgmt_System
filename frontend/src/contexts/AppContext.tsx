@@ -304,11 +304,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [addToast]);
 
-  const updateMark = useCallback(async (id: string, score: number) => {
+  const updateMark = useCallback(async (_id: string, _score: number) => {
     addToast({ type: "success", title: "Mark Updated", message: "Mark updated successfully." });
   }, [addToast]);
 
-  const addEnrollment = useCallback((e: Omit<Enrollment, "id">) => {}, []);
+  const addEnrollment = useCallback((_e: Omit<Enrollment, "id">) => {}, []);
 
   // Helpers
   const getStudentById = useCallback((id: string) => state.students.find((s) => s.id === id), [state.students]);

@@ -7,12 +7,12 @@ import {
 import { useApp } from "../contexts/AppContext";
 import { Student, Teacher, Subject } from "../data/mockData";
 import EmptyState from "../components/EmptyState";
-import { LoadingSkeleton, TableSkeleton } from "../components/LoadingSkeleton";
+import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import Breadcrumb from "../components/Breadcrumb";
 import Pagination from "../components/Pagination";
 import FormField from "../components/FormField";
-import DatePicker from "../components/DatePicker";
+
 import ProfilePage from "./ProfilePage";
 import { getEthiopianGrade } from "../utils/gradeCalculator";
 
@@ -193,7 +193,7 @@ function AdminDashboard() {
 function ManageStudents() {
   const { state, addStudent, updateStudent, deleteStudent } = useApp();
   const [search, setSearch] = useState("");
-  const [gradeFilter, setGradeFilter] = useState("");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
