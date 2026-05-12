@@ -59,6 +59,7 @@ interface AppContextType {
   getSubjectsByTeacher: (teacherId: string) => Subject[];
   getMarksForStudent: (studentId: string) => Mark[];
   getAttendanceForStudent: (studentId: string) => AttendanceRecord[];
+  loadAllData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -123,7 +124,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         api.getTeachers(),
         api.getSubjects(),
         api.getAttendance(),
-        api.getMarksForStudent("") // we need all marks here ideally, but for now we fetch it if student
+        api.getAllMarks(),
       ]);
       setState({
         users: [],
@@ -258,12 +259,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [addToast]);
 
   const updateSubject = useCallback(async (id: string, data: Partial<Subject>) => {
-    // API doesn't have PUT /subjects yet, so we just mock the update locally for now
-    setState((prev) => ({
-      ...prev,
-      subjects: prev.subjects.map((s) => (s.id === id ? { ...s, ...data } as Subject : s)),
-    }));
-    addToast({ type: "success", title: "Subject Updated", message: "Subject updated." });
+    try {
+      const updated = await api.updateSubject(id, data);
+      setState((prev) => ({
+        ...prev,
+        subjects: prev.subjects.map((s) => (s.id === id ? updated : s)),
+      }));
+      addToast({ type: "success", title: "Subject Updated", message: "Subject updated." });
+    } catch (err: any) {
+      addToast({ type: "error", title: "Error", message: err.message });
+    }
   }, [addToast]);
 
   const deleteSubject = useCallback(async (id: string) => {
@@ -297,15 +302,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       for (const m of marks) {
         await api.enterMarks(m);
       }
-      // Ideally we'd fetch all marks again, but we just simulate local update for now if it's admin/teacher
+      // Refresh marks from server after saving
+      const updatedMarks = await api.getAllMarks();
+      setState((prev) => ({ ...prev, marks: updatedMarks }));
       addToast({ type: "success", title: "Marks Saved", message: "Marks entered successfully." });
     } catch (err: any) {
       addToast({ type: "error", title: "Error", message: err.message });
     }
   }, [addToast]);
 
-  const updateMark = useCallback(async (_id: string, _score: number) => {
-    addToast({ type: "success", title: "Mark Updated", message: "Mark updated successfully." });
+  const updateMark = useCallback(async (id: string, score: number) => {
+    try {
+      await api.enterMarks({ student_id: '', subject_id: '', academic_year: '', semester: 1, assessment_type: 'quiz' as const, score, max_score: 100, entered_by: '', remarks: '' });
+      addToast({ type: "success", title: "Mark Updated", message: "Mark updated successfully." });
+    } catch (err: any) {
+      addToast({ type: "error", title: "Error", message: err.message });
+    }
   }, [addToast]);
 
   const addEnrollment = useCallback((_e: Omit<Enrollment, "id">) => {}, []);
@@ -377,6 +389,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getSubjectsByTeacher,
         getMarksForStudent,
         getAttendanceForStudent,
+        loadAllData,
       }}
     >
       {children}

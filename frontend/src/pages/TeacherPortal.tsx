@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  CheckCircle2, Save,
+  CheckCircle2, Save, UserPlus, Send, Mail,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useToast } from "../contexts/ToastContext";
+import { api } from "../services/api";
 import ProfilePage from "./ProfilePage";
 import { getEthiopianGrade } from "../utils/gradeCalculator";
 
@@ -349,7 +351,7 @@ function EnterMarks() {
     setSaved((prev) => ({ ...prev, [studentId]: false }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const marks = Object.entries(scores)
       .filter(([, score]) => score !== "")
       .map(([studentId, score]) => ({
@@ -364,7 +366,7 @@ function EnterMarks() {
         entered_by: teacherId,
       }));
     if (marks.length === 0) return;
-    enterMarks(marks);
+    await enterMarks(marks);
     setSubmitted(true);
     const allSaved: Record<string, boolean> = {};
     Object.keys(scores).forEach((id) => { if (scores[id] !== "") allSaved[id] = true; });
@@ -567,6 +569,157 @@ function ViewStudents() {
 }
 
 // ============================================================
+// ENROLL STUDENT (Teacher submits enrollment request)
+// ============================================================
+function EnrollStudent() {
+  const { currentUser, state } = useApp();
+  const { addToast } = useToast();
+  const teacher = state.teachers.find((t) => t.id === currentUser?.ref_id);
+
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    age: 15,
+    gender: "Male" as "Male" | "Female",
+    grade: teacher?.assigned_grade || "9",
+    section: teacher?.assigned_section || "A",
+    roll_number: "",
+    parent_phone: "",
+    address: "",
+    personal_email: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.createStudent({ ...form, enrolled_date: new Date().toISOString().split("T")[0] });
+      setSubmitted(`${form.first_name} ${form.last_name}`);
+      setForm({ first_name: "", last_name: "", age: 15, gender: "Male", grade: teacher?.assigned_grade || "9", section: teacher?.assigned_section || "A", roll_number: "", parent_phone: "", address: "", personal_email: "" });
+      addToast({ type: "success", title: "Enrollment Submitted", message: "The admin will review and issue credentials." });
+    } catch (err: any) {
+      addToast({ type: "error", title: "Error", message: err.message || "Enrollment failed" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+
+  const inputCls = "w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 transition-all";
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
+        <div className="flex items-center gap-3 mb-2">
+          <UserPlus size={24} />
+          <h2 className="text-xl font-bold">Enroll New Student</h2>
+        </div>
+        <p className="text-blue-100 text-sm">
+          Fill in the student's details collected during registration. The enrollment will be sent to the admin for approval. Credentials will be emailed to the student's Gmail.
+        </p>
+      </div>
+
+      {submitted && (
+        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-2xl animate-fade-in">
+          <CheckCircle2 className="text-green-500" size={20} />
+          <p className="text-green-800 font-semibold text-sm">
+            <span className="notranslate">{submitted}</span> has been submitted for admin approval!
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5 shadow-sm">
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="First Name">
+            <input required value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} className={inputCls} placeholder="e.g. Mekdes" />
+          </Field>
+          <Field label="Last Name">
+            <input required value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} className={inputCls} placeholder="e.g. Tsegaye" />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <Field label="Age">
+            <input required type="number" min={10} max={25} value={form.age} onChange={e => setForm({...form, age: Number(e.target.value)})} className={inputCls} />
+          </Field>
+          <Field label="Gender">
+            <select value={form.gender} onChange={e => setForm({...form, gender: e.target.value as "Male"|"Female"})} className={inputCls}>
+              <option>Male</option>
+              <option>Female</option>
+            </select>
+          </Field>
+          <Field label="Roll No.">
+            <input required value={form.roll_number} onChange={e => setForm({...form, roll_number: e.target.value})} className={inputCls} placeholder="e.g. 001" />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Grade">
+            <select value={form.grade} onChange={e => setForm({...form, grade: e.target.value})} className={inputCls}>
+              {["9","10","11","12"].map(g => <option key={g}>{g}</option>)}
+            </select>
+          </Field>
+          <Field label="Section">
+            <select value={form.section} onChange={e => setForm({...form, section: e.target.value})} className={inputCls}>
+              {["A","B","C","D"].map(s => <option key={s}>{s}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Parent / Guardian Phone">
+          <input required value={form.parent_phone} onChange={e => setForm({...form, parent_phone: e.target.value})} className={inputCls} placeholder="+251 91 000 0000" />
+        </Field>
+
+        <Field label="Home Address">
+          <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className={inputCls} placeholder="Kebele, Woreda, City" />
+        </Field>
+
+        <div className="relative">
+          <Field label="Student's Personal Email (Gmail) — for credential delivery">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <Mail size={16} />
+              </div>
+              <input
+                required
+                type="email"
+                value={form.personal_email}
+                onChange={e => setForm({...form, personal_email: e.target.value})}
+                className={`${inputCls} pl-10`}
+                placeholder="student@gmail.com"
+              />
+            </div>
+          </Field>
+          <p className="mt-1.5 text-xs text-amber-600 font-medium">⚠️ The admin will send login credentials to this exact email address. Verify it carefully.</p>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-60"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <><Send size={16} /> Submit Enrollment Request</>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN TEACHER PORTAL
 // ============================================================
 export default function TeacherPortal({ activePage }: { activePage: string }) {
@@ -575,6 +728,7 @@ export default function TeacherPortal({ activePage }: { activePage: string }) {
     case "attendance": return <TakeAttendance />;
     case "marks": return <EnterMarks />;
     case "students": return <ViewStudents />;
+    case "enroll": return <EnrollStudent />;
     case "profile": return <ProfilePage />;
     default: return <TeacherDashboard />;
   }

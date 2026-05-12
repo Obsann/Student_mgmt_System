@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../contexts/AppContext";
+import { api } from "../services/api";
 import { User, Mail, Phone, MapPin, Edit3, Shield, GraduationCap, Upload } from "lucide-react";
 
 export default function ProfilePage() {
@@ -13,9 +14,36 @@ export default function ProfilePage() {
     bio: "Passionate about education and student success.",
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // In a real app, you would call an update user API here
+  const [saving, setSaving] = useState(false);
+  const [passwordData, setPasswordData] = useState({ current: "", new: "" });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.updateProfile({ name: profileData.name, email: profileData.email });
+      setIsEditing(false);
+      alert("Profile updated successfully!");
+    } catch (err: any) {
+      alert(err.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.new.length < 6) return alert("Password must be at least 6 characters");
+    setSaving(true);
+    try {
+      await api.changePassword(passwordData.current, passwordData.new);
+      setIsChangingPassword(false);
+      setPasswordData({ current: "", new: "" });
+      alert("Password changed successfully!");
+    } catch (err: any) {
+      alert(err.message || "Failed to change password");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!currentUser) return null;
@@ -78,8 +106,8 @@ export default function ProfilePage() {
                   <button onClick={() => setIsEditing(false)} className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors w-full sm:w-auto">
                     Cancel
                   </button>
-                  <button onClick={handleSave} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors shadow-md w-full sm:w-auto">
-                    Save Changes
+                  <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors shadow-md w-full sm:w-auto disabled:opacity-50">
+                    {saving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               ) : (
@@ -161,9 +189,33 @@ export default function ProfilePage() {
                 <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-bold text-gray-900">Password</p>
-                    {isEditing && <button className="text-xs font-bold text-blue-600 hover:text-blue-700">Change</button>}
+                    <button onClick={() => setIsChangingPassword(!isChangingPassword)} className="text-xs font-bold text-blue-600 hover:text-blue-700">
+                      {isChangingPassword ? "Cancel" : "Change"}
+                    </button>
                   </div>
-                  <p className="text-xs text-gray-500">Last changed 3 months ago</p>
+                  {isChangingPassword ? (
+                    <div className="space-y-3 mt-3">
+                      <input 
+                        type="password" 
+                        placeholder="Current Password" 
+                        value={passwordData.current}
+                        onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
+                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input 
+                        type="password" 
+                        placeholder="New Password (min 6 chars)" 
+                        value={passwordData.new}
+                        onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
+                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button onClick={handlePasswordChange} disabled={saving} className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg disabled:opacity-50 hover:bg-blue-700">
+                        {saving ? "Saving..." : "Update Password"}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">Update your account password</p>
+                  )}
                 </div>
                 
                 <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex justify-between items-center">

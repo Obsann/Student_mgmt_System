@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-expect-error — generic fetch wrappers below use `any` intentionally
 const API_BASE_URL = 'http://localhost:5001/api';
 
 const getHeaders = () => {
@@ -22,6 +22,9 @@ const mapStudent = (s: any) => ({
   parent_phone: s.parentPhone,
   address: s.address,
   enrolled_date: s.enrolledDate,
+  status: s.status || 'active',
+  personal_email: s.personalEmail || '',
+  credentials_issued_at: s.credentialsIssuedAt || null,
 });
 
 const mapTeacher = (t: any) => ({
@@ -85,6 +88,39 @@ export const api = {
     return data;
   },
 
+  register: async (username: string, password: string, name: string, email: string, role: string) => {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, name, email, role }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Registration failed');
+    return data;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const res = await fetch(`${API_BASE_URL}/auth/password`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Password change failed');
+    return data;
+  },
+
+  updateProfile: async (updates: { name?: string; email?: string }) => {
+    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Profile update failed');
+    return data;
+  },
+
   // Students
   getStudents: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -93,7 +129,7 @@ export const api = {
     if (!res.ok) throw new Error(data.message);
     return data.map(mapStudent);
   },
-  createStudent: async (student) => {
+  createStudent: async (student: any) => {
     const backendFormat = {
       firstName: student.first_name,
       lastName: student.last_name,
@@ -104,6 +140,7 @@ export const api = {
       rollNumber: student.roll_number,
       parentPhone: student.parent_phone,
       address: student.address,
+      personalEmail: student.personal_email || '',
     };
     const res = await fetch(`${API_BASE_URL}/students`, {
       method: 'POST',
@@ -135,10 +172,28 @@ export const api = {
     if (!res.ok) throw new Error(data.message);
     return mapStudent(data);
   },
-  deleteStudent: async (id) => {
+  deleteStudent: async (id: string) => {
     const res = await fetch(`${API_BASE_URL}/students/${id}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    return data;
+  },
+
+  getPendingStudents: async () => {
+    const res = await fetch(`${API_BASE_URL}/students?status=pending`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    return data.map(mapStudent);
+  },
+
+  issueCredentials: async (studentId: string, email?: string) => {
+    const res = await fetch(`${API_BASE_URL}/students/${studentId}/issue-credentials`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ email }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message);
@@ -233,7 +288,15 @@ export const api = {
   },
 
   // Marks
-  getMarksForStudent: async (studentId) => {
+  getAllMarks: async (params: Record<string, string> = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE_URL}/marks?${query}`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    return data.map(mapMark);
+  },
+  getMarksForStudent: async (studentId: string) => {
+    if (!studentId) return [];
     const res = await fetch(`${API_BASE_URL}/marks/${studentId}`, { headers: getHeaders() });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message);
@@ -260,9 +323,21 @@ export const api = {
     return mapMark(data);
   },
 
-  updateMark: async (id, score) => {
-    // API mock - in real app, we'd hit PUT /marks/:id
-    return { id, score };
+  updateSubject: async (id: string, subject: any) => {
+    const backendFormat = {
+      name: subject.name,
+      code: subject.code,
+      grade: subject.grade,
+      teacherId: subject.teacher_id,
+    };
+    const res = await fetch(`${API_BASE_URL}/subjects/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(backendFormat),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    return mapSubject(data);
   },
 
   // Audit Logs

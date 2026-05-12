@@ -1,155 +1,209 @@
-import { useState, useEffect } from "react";
-import { GraduationCap, Eye, EyeOff, LogIn, ArrowLeft, ShieldCheck, UserCheck } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { GraduationCap, ArrowRight, ArrowLeft, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { cn } from "../lib/utils";
 
-interface LoginProps {
-  onBack: () => void;
-}
-
-export default function Login({ onBack }: LoginProps) {
+export default function Login() {
+  const navigate = useNavigate();
   const { login } = useApp();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [username, setUsername] = useState("admin@keraschool.et");
+  const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [role, setRole] = useState<"admin" | "teacher" | "student">("admin");
+  const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    const translateWidget = document.getElementById('google_translate_element');
-    const headerTarget = document.getElementById('google_translate_header_target');
-
-    if (translateWidget && headerTarget) {
-      translateWidget.style.position = 'static';
-      headerTarget.appendChild(translateWidget);
-    }
-
-    return () => {
-      if (translateWidget) {
-        translateWidget.style.position = 'fixed';
-        translateWidget.style.bottom = '16px';
-        translateWidget.style.left = '16px';
-        document.body.appendChild(translateWidget);
-      }
-    };
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(async () => {
+
+    try {
       const err = await login(username, password);
       if (err) {
         setError(err);
+      } else {
+        navigate("/dashboard");
       }
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
+  };
+
+  const loadDemo = (type: "admin" | "teacher" | "student") => {
+    setRole(type);
+    if (type === "admin") { setUsername("admin@keraschool.et"); setPassword("admin123"); }
+    if (type === "teacher") { setUsername("ephrem.worku"); setPassword("teacher123"); }
+    if (type === "student") { setUsername("mekdes.tsegaye"); setPassword("student123"); }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 relative font-sans selection:bg-indigo-500 selection:text-white">
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
-        <div id="google_translate_header_target"></div>
-      </div>
-      
-      <div className="w-full max-w-4xl grid md:grid-cols-2 gap-0 relative z-10 animate-fade-scale rounded-3xl overflow-hidden bg-white shadow-xl border border-slate-100">
+    <div className="min-h-screen flex bg-slate-50 font-sans">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 relative items-center justify-center overflow-hidden">
+        {/* Decorative circles */}
+        <div className="absolute top-[-15%] right-[-10%] w-[400px] h-[400px] bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-400/10 rounded-full blur-3xl"></div>
         
-        {/* Left Side: Friendly Graphic / Branding */}
-        <div className="hidden md:flex flex-col justify-between p-12 bg-indigo-600 text-white relative overflow-hidden">
-          {/* Soft background circles for a modern, engaging feel */}
-          <div className="absolute top-[-20%] left-[-20%] w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-48 h-48 bg-purple-500 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-          
-          <div className="relative z-10">
-            <button onClick={onBack} className="text-indigo-200 hover:text-white flex items-center gap-2 text-sm font-semibold transition-colors mb-12">
-              <ArrowLeft className="w-4 h-4" /> Go Back
-            </button>
-            
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-              <GraduationCap className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-extrabold mb-4 tracking-tight leading-tight">Welcome to Kera</h1>
-            <p className="text-indigo-100 text-lg leading-relaxed font-medium max-w-sm">
-              Your central hub for classes, grades, and everything happening on campus. Let's get started!
-            </p>
+        <div className="relative z-10 max-w-lg px-12 text-white animate-fade-up">
+          <div className="w-16 h-16 bg-white/15 backdrop-blur-lg rounded-2xl flex items-center justify-center mb-8 border border-white/20 shadow-2xl">
+            <GraduationCap size={32} className="text-white" />
           </div>
+          <h1 className="text-5xl font-black mb-6 leading-tight">Welcome back to <span className="notranslate">KeraSMS</span>.</h1>
+          <p className="text-xl text-indigo-100 font-medium opacity-90 leading-relaxed">
+            Your centralized hub for school administration, academic tracking, and interactive learning.
+          </p>
           
-          <div className="relative z-10 pt-8 border-t border-indigo-500/50">
-            <p className="text-xs text-indigo-200 font-medium">
-              Jimma University IoT • CBTP Phase 2
-            </p>
+          {/* Demo Users Quick Select */}
+          <div className="mt-12">
+            <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-4">Quick Demo Access</p>
+            <div className="flex gap-3">
+              {(["admin", "teacher", "student"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => loadDemo(r)}
+                  className={cn(
+                    "px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 border",
+                    role === r
+                      ? "bg-white text-indigo-700 border-white shadow-lg shadow-white/20"
+                      : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  )}
+                >
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Side: Universal Form */}
-        <div className="p-8 md:p-12 relative bg-white flex flex-col justify-center">
-          <button onClick={onBack} className="md:hidden absolute top-6 left-6 text-slate-400 hover:text-slate-900 flex items-center gap-1 text-sm font-semibold transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          
-          <div className="mb-10 mt-6 md:mt-0 animate-fade-up">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Sign In</h2>
-            <p className="text-slate-500 text-sm font-medium">Enter your credentials to access your account.</p>
+      {/* Right Panel - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-24 relative bg-white">
+        
+        {/* Back Arrow — top left */}
+        <button
+          onClick={() => navigate("/")}
+          className="absolute top-8 left-8 flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-colors">
+            <ArrowLeft size={18} />
+          </div>
+          <span className="text-sm font-bold hidden sm:inline lg:hidden xl:inline">Back</span>
+        </button>
+
+        {/* Mobile Header Logo */}
+        <div className="absolute top-8 right-8 flex items-center gap-3 lg:hidden">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+            <GraduationCap size={20} className="text-white" />
+          </div>
+          <span className="font-black text-xl tracking-tight text-gray-900 notranslate">Kera<span className="text-indigo-600">SMS</span></span>
+        </div>
+
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Sign in</h2>
+            <p className="text-gray-500 font-medium">Please enter your credentials to continue.</p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100 flex items-center gap-3 shadow-sm animate-fade-in">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              {error}
+            </div>
+          )}
+
+          {/* Mobile Demo Selector */}
+          <div className="mb-6 lg:hidden">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Demo Access</p>
+            <div className="flex gap-2">
+              {(["admin", "teacher", "student"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => loadDemo(r)}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border-2",
+                    role === r
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-100 bg-white text-gray-400 hover:border-gray-200"
+                  )}
+                >
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-sm font-semibold flex items-center gap-3 animate-fade-in shadow-sm">
-                <ShieldCheck className="w-5 h-5 flex-shrink-0" /> {error}
-              </div>
-            )}
-
-            <div className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Username</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <UserCheck className="w-5 h-5 text-slate-400" />
+            <div className="space-y-4">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
+                  <User size={18} />
                 </div>
                 <input
                   type="text"
+                  required
+                  placeholder="Username or Email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-900 font-medium"
-                  placeholder="e.g. student.1@keraschool.et"
-                  required
+                  className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm notranslate"
                 />
               </div>
-            </div>
 
-            <div className="animate-fade-up" style={{ animationDelay: '0.2s' }}>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
-              <div className="relative">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
+                  <Lock size={18} />
+                </div>
                 <input
                   type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-900 font-medium pr-12"
-                  placeholder="Enter your password"
-                  required
+                  className="w-full pl-11 pr-12 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all shadow-sm notranslate"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-indigo-600 transition-colors"
+                  tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <Link to="/forgot-password" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
+                Forgot password?
+              </Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 mt-4 bg-indigo-600 text-white rounded-xl font-bold shadow-md hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm transition-all disabled:opacity-70 flex items-center justify-center gap-2 animate-fade-up"
-              style={{ animationDelay: '0.3s' }}
+              className="w-full py-4 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-bold tracking-wide transition-all shadow-xl shadow-indigo-600/20 hover:shadow-indigo-600/30 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> <span>Signing In...</span></>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <><LogIn className="w-5 h-5" /> <span>Sign In</span></>
+                <>
+                  Sign In
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </>
               )}
             </button>
           </form>
+
+          <div className="mt-10 text-center lg:text-left">
+            <p className="text-gray-400 font-medium text-xs">
+              Contact your school administrator if you need access credentials.
+            </p>
+          </div>
         </div>
       </div>
     </div>

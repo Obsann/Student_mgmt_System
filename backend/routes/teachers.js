@@ -49,7 +49,7 @@ router.post("/", protect, authorize("admin"), async (req, res) => {
 // PUT /api/teachers/:id
 router.put("/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const teacher = await Teacher.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const teacher = await Teacher.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!teacher) return res.status(404).json({ message: "Teacher not found" });
 
     await AuditLog.create({

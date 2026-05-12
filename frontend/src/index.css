@@ -4,6 +4,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ─── Google Translate: preserve proper names, numbers, codes ─────────────── */
+.notranslate {
+  translate: no; /* modern spec */
+}
+
+
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
 import { GraduationCap, BookOpen, Users, ArrowRight, Trophy, ShieldCheck, CheckCircle, ChevronRight } from 'lucide-react';
 
-interface WelcomeProps {
-  onContinue: () => void;
-}
+import { Link, useNavigate } from 'react-router-dom';
 
-export default function Welcome({ onContinue }: WelcomeProps) {
+export default function Welcome() {
+  const navigate = useNavigate();
   useEffect(() => {
     // Teleport the Google Translate widget from the body into the header
     const translateWidget = document.getElementById('google_translate_element');
@@ -35,19 +34,19 @@ export default function Welcome({ onContinue }: WelcomeProps) {
             <GraduationCap className="w-6 h-6 md:w-7 md:h-7 text-white" />
           </div>
           <div>
-            <span className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 block leading-none">Kera</span>
-            <span className="text-[10px] md:text-xs font-bold text-indigo-500 tracking-wide">HIGH SCHOOL</span>
+            <span className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 block leading-none notranslate">Kera</span>
+            <span className="text-[10px] md:text-xs font-bold text-indigo-500 tracking-wide notranslate">HIGH SCHOOL</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div id="google_translate_header_target" className="hidden sm:block"></div>
-          <button
-            onClick={onContinue}
+          <Link
+            to="/login"
             className="hidden sm:flex px-5 py-2 md:px-6 md:py-2.5 bg-white text-indigo-600 text-sm font-bold rounded-xl shadow-sm border border-slate-200 hover:border-indigo-200 hover:shadow-md transition-all items-center gap-2"
           >
             Sign In
             <ChevronRight className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -65,7 +64,7 @@ export default function Welcome({ onContinue }: WelcomeProps) {
           <div className="lg:col-span-6 animate-fade-up">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 font-bold text-xs tracking-wide mb-8 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              Welcome to the 2025/26 Year
+              Welcome to the <span className="notranslate">2025/26</span> Year
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15] mb-6">
@@ -79,7 +78,7 @@ export default function Welcome({ onContinue }: WelcomeProps) {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button
-                onClick={onContinue}
+                onClick={() => navigate('/login')}
                 className="px-8 py-4 bg-indigo-600 text-white text-base md:text-lg font-bold rounded-2xl shadow-lg shadow-indigo-600/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-600/40 active:translate-y-0 transition-all flex items-center justify-center gap-3 group"
               >
                 Go to Dashboard
@@ -147,7 +146,7 @@ export default function Welcome({ onContinue }: WelcomeProps) {
                   </div>
                   <div>
                     <div className="text-xs text-slate-400 font-bold">Latest Grade</div>
-                    <div className="text-sm font-extrabold text-slate-900">Mathematics</div>
+                    <div className="text-sm font-extrabold text-slate-900 notranslate">Mathematics</div>
                   </div>
                 </div>
               </div>

@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users, BookOpen, UserCheck, BarChart3,
   Plus, Pencil, Trash2, Search, X,
   TrendingUp, Award,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useToast } from "../contexts/ToastContext";
 import { Student, Teacher, Subject } from "../data/mockData";
+import { api } from "../services/api";
 import EmptyState from "../components/EmptyState";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
 import ConfirmationDialog from "../components/ConfirmationDialog";
@@ -191,7 +193,8 @@ function AdminDashboard() {
 // MANAGE STUDENTS
 // ============================================================
 function ManageStudents() {
-  const { state, addStudent, updateStudent, deleteStudent } = useApp();
+  const { state, addStudent, updateStudent, deleteStudent, loadAllData } = useApp();
+  const { addToast } = useToast();
   const [search, setSearch] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -256,10 +259,11 @@ function ManageStudents() {
           return { first_name, last_name, age: Number(age), gender: gender.trim(), grade: grade.trim(), section: section.trim(), roll_number, parent_phone, address };
         });
         await api.bulkImportStudents(students);
-        window.location.reload(); // naive reload to refresh state
-      } catch (err) {
+        await loadAllData();
+        addToast({ type: "success", title: "Success", message: "Bulk import completed." });
+      } catch (err: any) {
         console.error(err);
-        alert("Bulk import failed. Check CSV format.");
+        addToast({ type: "error", title: "Import Failed", message: err.message || "Bulk import failed. Check CSV format." });
       }
     };
     reader.readAsText(file);
@@ -278,9 +282,9 @@ function ManageStudents() {
     setLoading(true);
     try {
       if (editId) {
-        updateStudent(editId, form);
+        await updateStudent(editId, form);
       } else {
-        addStudent({ ...form, enrolled_date: new Date().toISOString().split("T")[0] });
+        await addStudent({ ...form, enrolled_date: new Date().toISOString().split("T")[0] });
       }
       setModalOpen(false);
     } finally {
@@ -560,7 +564,7 @@ function ManageTeachers() {
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; teacher: Teacher | null }>({ open: false, teacher: null });
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", qualification: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", qualification: "", assigned_grade: "9", assigned_section: "A" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const filtered = state.teachers.filter((t) =>
@@ -580,14 +584,14 @@ function ManageTeachers() {
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", email: "", phone: "", qualification: "" });
+    setForm({ name: "", email: "", phone: "", qualification: "", assigned_grade: "9", assigned_section: "A" });
     setFormErrors({});
     setModalOpen(true);
   };
 
   const openEdit = (t: Teacher) => {
     setEditId(t.id);
-    setForm({ name: t.name, email: t.email, phone: t.phone, qualification: t.qualification });
+    setForm({ name: t.name, email: t.email, phone: t.phone, qualification: t.qualification, assigned_grade: t.assigned_grade || "9", assigned_section: t.assigned_section || "A" });
     setFormErrors({});
     setModalOpen(true);
   };
@@ -596,9 +600,8 @@ function ManageTeachers() {
     if (!validateForm()) return;
     setLoading(true);
     try {
-      const fullForm = { ...form, assigned_grade: "9", assigned_section: "A" } as any;
-      if (editId) updateTeacher(editId, fullForm);
-      else addTeacher({ ...fullForm, subjects: [] });
+      if (editId) await updateTeacher(editId, form);
+      else await addTeacher({ ...form, subjects: [] });
       setModalOpen(false);
     } finally {
       setLoading(false);
@@ -729,6 +732,34 @@ function ManageTeachers() {
             helperText="e.g., B.Ed., M.Sc."
             required
           />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned Grade</label>
+              <select
+                value={form.assigned_grade}
+                onChange={(e) => setForm({ ...form, assigned_grade: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
+              >
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned Section</label>
+              <select
+                value={form.assigned_section}
+                onChange={(e) => setForm({ ...form, assigned_section: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
+              >
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+          </div>
           <div className="flex gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50" disabled={loading}>
               Cancel
@@ -804,8 +835,8 @@ function ManageSubjects() {
     if (!validateForm()) return;
     setLoading(true);
     try {
-      if (editId) updateSubject(editId, form);
-      else addSubject(form);
+      if (editId) await updateSubject(editId, form);
+      else await addSubject(form);
       setModalOpen(false);
     } finally {
       setLoading(false);
@@ -1053,8 +1084,7 @@ function AdminReports() {
 // ============================================================
 // ADMIN AUDIT LOGS
 // ============================================================
-import { api } from "../services/api";
-import { useEffect } from "react";
+
 
 function AdminAuditLogs() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -1110,6 +1140,7 @@ function AdminAuditLogs() {
 function AdminSettings() {
   const [settings, setSettings] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     api.getSettings().then(setSettings).catch(console.error);
@@ -1120,9 +1151,9 @@ function AdminSettings() {
     try {
       await api.updateSetting("academicYear", settings.academicYear);
       await api.updateSetting("currentSemester", settings.currentSemester);
-      alert("System settings updated.");
+      addToast({ type: "success", title: "Success", message: "System settings updated." });
     } catch (e: any) {
-      alert("Error: " + e.message);
+      addToast({ type: "error", title: "Error", message: e.message || "Failed to save settings." });
     } finally {
       setSaving(false);
     }

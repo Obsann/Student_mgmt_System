@@ -1,4 +1,5 @@
 import { useState, ReactNode, useEffect } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   GraduationCap,
   LogOut,
@@ -13,10 +14,11 @@ interface NavItem {
   id: string;
   label: string;
   icon: ReactNode;
+  path: string;
 }
 
 interface LayoutProps {
-  children: (activePage: string) => ReactNode;
+
   navItems: NavItem[];
   roleLabel: string;
   roleColor?: string;
@@ -34,9 +36,10 @@ function Avatar({ name, size = 'md', className = '' }: { name?: string; size?: '
   );
 }
 
-export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
+export default function Layout({ navItems, roleLabel }: LayoutProps) {
   const { currentUser, logout } = useApp();
-  const [activePage, setActivePage] = useState(navItems[0]?.id || "");
+  const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -77,8 +80,8 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-slate-900 font-extrabold text-xl leading-none tracking-tight">Kera</h1>
-              <p className="text-indigo-500 text-[10px] font-bold uppercase tracking-widest mt-0.5">High School</p>
+              <h1 className="text-slate-900 font-extrabold text-xl leading-none tracking-tight notranslate">Kera</h1>
+              <p className="text-indigo-500 text-[10px] font-bold uppercase tracking-widest mt-0.5 notranslate">High School</p>
             </div>
             <button className="ml-auto lg:hidden text-slate-400 hover:text-slate-900 bg-slate-50 p-1.5 rounded-lg" onClick={() => setSidebarOpen(false)}>
               <X className="w-5 h-5" />
@@ -90,7 +93,7 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
             <div className="flex items-center gap-3">
               <Avatar name={currentUser?.name} size="md" className="shadow-md shadow-indigo-200" />
               <div className="flex-1 min-w-0">
-                <p className="text-slate-900 font-extrabold text-sm truncate">{currentUser?.name}</p>
+                <p className="text-slate-900 font-extrabold text-sm truncate notranslate">{currentUser?.name}</p>
                 <span className="inline-block mt-0.5 text-xs text-slate-500 font-semibold capitalize">
                   {roleLabel} Portal
                 </span>
@@ -103,11 +106,12 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
           {/* Nav Items */}
           <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
             {navItems.map((item) => {
-              const isActive = activePage === item.id;
+              const isActive = location.pathname === item.path || (location.pathname === '/' && item.path === '/dashboard');
               return (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
@@ -116,7 +120,7 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
                 >
                   {item.icon}
                   {item.label}
-                </button>
+                </Link>
               )
             })}
           </nav>
@@ -148,7 +152,7 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
               </button>
               <div className="hidden sm:block animate-fade-in">
                 <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                  {navItems.find((n) => n.id === activePage)?.label || "Dashboard"}
+                  {navItems.find((n) => location.pathname === n.path || (location.pathname === '/' && n.path === '/dashboard'))?.label || "Dashboard"}
                 </h2>
               </div>
             </div>
@@ -173,17 +177,10 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
                   <div className="absolute top-full right-0 mt-3 w-80 bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-fade-scale origin-top-right">
                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <h3 className="font-extrabold text-slate-900">Updates</h3>
-                      <span className="text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest bg-red-100 text-red-600">2 New</span>
+                      <span className="text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest bg-gray-100 text-gray-600">0 New</span>
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group">
-                        <p className="text-sm text-slate-800 font-bold group-hover:text-indigo-600 transition-colors">Term 2 Grading Period Open</p>
-                        <span className="text-xs text-slate-400 mt-1 block font-medium">1 hour ago</span>
-                      </div>
-                      <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group">
-                        <p className="text-sm text-slate-800 font-bold group-hover:text-indigo-600 transition-colors">New assignment posted in Biology</p>
-                        <span className="text-xs text-slate-400 mt-1 block font-medium">3 hours ago</span>
-                      </div>
+                    <div className="max-h-80 overflow-y-auto p-8 text-center">
+                      <p className="text-sm text-slate-500 font-medium">No new notifications</p>
                     </div>
                   </div>
                 )}
@@ -213,7 +210,7 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
                     <div className="p-2">
                       <button
                         onClick={() => {
-                          setActivePage("profile");
+                          navigate("/profile");
                           setShowUserMenu(false);
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-2xl transition-colors font-bold"
@@ -240,7 +237,7 @@ export default function Layout({ children, navItems, roleLabel }: LayoutProps) {
         {/* Page Content */}
         <main className="p-4 md:p-6 lg:p-8 flex-1 animate-fade-in">
           <div className="max-w-7xl mx-auto">
-            {children(activePage)}
+            <Outlet />
           </div>
         </main>
       </div>

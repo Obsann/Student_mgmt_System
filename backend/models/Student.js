@@ -12,6 +12,16 @@ const studentSchema = new mongoose.Schema(
     parentPhone: { type: String, required: true },
     address: { type: String, default: "" },
     enrolledDate: { type: Date, default: Date.now },
+
+    // Enrollment workflow fields
+    personalEmail: { type: String, default: "" },   // student's real Gmail used for credential delivery
+    status: {
+      type: String,
+      enum: ["pending", "active"],
+      default: "active",
+    },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // teacher who enrolled
+    credentialsIssuedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
