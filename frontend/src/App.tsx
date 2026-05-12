@@ -17,6 +17,7 @@ import StudentPortal from "./pages/StudentPortal";
 function AdminRoutes() {
   const navItems = [
     { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+    { id: "pending-enrollments", path: "/pending-enrollments", label: "Pending Enrollments", icon: <UserPlus size={18} /> },
     { id: "students", path: "/students", label: "Students", icon: <Users size={18} /> },
     { id: "teachers", path: "/teachers", label: "Teachers", icon: <UserCheck size={18} /> },
     { id: "subjects", path: "/subjects", label: "Subjects", icon: <BookOpen size={18} /> },
@@ -29,6 +30,7 @@ function AdminRoutes() {
       <Route element={<Layout navItems={navItems} roleLabel="Admin" roleColor="red" />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<AdminPortal activePage="dashboard" />} />
+        <Route path="/pending-enrollments" element={<AdminPortal activePage="pending-enrollments" />} />
         <Route path="/students" element={<AdminPortal activePage="students" />} />
         <Route path="/teachers" element={<AdminPortal activePage="teachers" />} />
         <Route path="/subjects" element={<AdminPortal activePage="subjects" />} />
