@@ -8,6 +8,19 @@ const rateLimit = require("express-rate-limit");
 
 dotenv.config();
 
+// ─── Environment Validation ──────────────────────────────────────────────────
+const REQUIRED_ENV = ["MONGO_URI", "JWT_SECRET"];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`✗ FATAL: Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+if (process.env.JWT_SECRET.length < 32) {
+  console.error("✗ FATAL: JWT_SECRET must be at least 32 characters for security.");
+  process.exit(1);
+}
+
 const app = express();
 
 // Security Middleware
@@ -50,6 +63,15 @@ app.use("/api/settings", settingsRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "SMS Backend API is running" });
+});
+
+// ─── Global Error Handler (sanitize in production) ──────────────────────────
+app.use((err, req, res, _next) => {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    message: err.message || "Internal server error",
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+  });
 });
 
 // Database connection

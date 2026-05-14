@@ -1,16 +1,22 @@
-// @ts-expect-error — generic fetch wrappers below use `any` intentionally
-const API_BASE_URL = 'http://localhost:5001/api';
+import type {
+  Student, Teacher, Subject, Mark, AttendanceRecord,
+  ApiStudent, ApiTeacher, ApiSubject, ApiMark, ApiAttendance,
+  LoginResponse, ApiError,
+} from "../types";
 
-const getHeaders = () => {
-  const token = localStorage.getItem('sms_token');
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+
+const getHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem("sms_token");
   return {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
 
-// Mappers to convert backend camelCase to frontend snake_case
-const mapStudent = (s: any) => ({
+// ─── Mappers (backend camelCase → frontend snake_case) ────────────────────────
+
+const mapStudent = (s: ApiStudent): Student => ({
   id: s._id,
   first_name: s.firstName,
   last_name: s.lastName,
@@ -22,34 +28,34 @@ const mapStudent = (s: any) => ({
   parent_phone: s.parentPhone,
   address: s.address,
   enrolled_date: s.enrolledDate,
-  status: s.status || 'active',
-  personal_email: s.personalEmail || '',
+  status: s.status || "active",
+  personal_email: s.personalEmail || "",
   credentials_issued_at: s.credentialsIssuedAt || null,
 });
 
-const mapTeacher = (t: any) => ({
+const mapTeacher = (t: ApiTeacher): Teacher => ({
   id: t._id,
   name: t.name,
   email: t.email,
   phone: t.phone,
   qualification: t.qualification,
-  subjects: t.subjects?.map((s: any) => s._id || s) || [],
+  subjects: t.subjects?.map((s) => (typeof s === "string" ? s : s._id)) || [],
   assigned_grade: t.assignedGrade,
   assigned_section: t.assignedSection,
 });
 
-const mapSubject = (s: any) => ({
+const mapSubject = (s: ApiSubject): Subject => ({
   id: s._id,
   name: s.name,
   code: s.code,
   grade: s.grade,
-  teacher_id: s.teacherId?._id || s.teacherId,
+  teacher_id: typeof s.teacherId === "string" ? s.teacherId : s.teacherId?._id,
 });
 
-const mapMark = (m: any) => ({
+const mapMark = (m: ApiMark): Mark => ({
   id: m._id,
-  student_id: m.studentId?._id || m.studentId,
-  subject_id: m.subjectId?._id || m.subjectId,
+  student_id: typeof m.studentId === "string" ? m.studentId : m.studentId?._id,
+  subject_id: typeof m.subjectId === "string" ? m.subjectId : m.subjectId?._id,
   academic_year: m.academicYear,
   semester: m.semester,
   assessment_type: m.assessmentType,
@@ -59,77 +65,70 @@ const mapMark = (m: any) => ({
   entered_by: m.enteredBy,
 });
 
-const mapAttendance = (a: any) => ({
+const mapAttendance = (a: ApiAttendance): AttendanceRecord => ({
   id: a._id,
-  student_id: a.studentId?._id || a.studentId,
-  subject_id: a.subjectId?._id || a.subjectId,
+  student_id: typeof a.studentId === "string" ? a.studentId : a.studentId?._id,
+  subject_id: typeof a.subjectId === "string" ? a.subjectId : a.subjectId?._id,
   date: a.date,
   status: a.status,
   recorded_by: a.recordedBy,
 });
 
+// ─── Generic fetch helper ─────────────────────────────────────────────────────
+
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options);
+  const data = await res.json();
+  if (!res.ok) throw new Error((data as ApiError).message || "Request failed");
+  return data as T;
+}
+
+// ─── API Methods ──────────────────────────────────────────────────────────────
+
 export const api = {
   // Auth
-  login: async (username, password) => {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+  login: (username: string, password: string) =>
+    apiFetch<LoginResponse>(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Login failed');
-    return data;
-  },
-  
-  getMe: async () => {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  },
+    }),
 
-  register: async (username: string, password: string, name: string, email: string, role: string) => {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, name, email, role }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Registration failed');
-    return data;
-  },
+  getMe: () =>
+    apiFetch<{ _id: string; username: string; role: string; name: string; email?: string; refId?: string }>(
+      `${API_BASE_URL}/auth/me`,
+      { headers: getHeaders() }
+    ),
 
-  changePassword: async (currentPassword: string, newPassword: string) => {
-    const res = await fetch(`${API_BASE_URL}/auth/password`, {
-      method: 'PUT',
+  register: (username: string, password: string, name: string, email: string) =>
+    apiFetch<LoginResponse>(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, name, email }),
+    }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch<{ message: string }>(`${API_BASE_URL}/auth/password`, {
+      method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify({ currentPassword, newPassword }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Password change failed');
-    return data;
-  },
+    }),
 
-  updateProfile: async (updates: { name?: string; email?: string }) => {
-    const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-      method: 'PUT',
+  updateProfile: (updates: { name?: string; email?: string }) =>
+    apiFetch<Record<string, unknown>>(`${API_BASE_URL}/auth/profile`, {
+      method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Profile update failed');
-    return data;
-  },
+    }),
 
   // Students
-  getStudents: async (params = {}) => {
+  getStudents: async (params: Record<string, string> = {}): Promise<Student[]> => {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE_URL}/students?${query}`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+    const data = await apiFetch<ApiStudent[]>(`${API_BASE_URL}/students?${query}`, { headers: getHeaders() });
     return data.map(mapStudent);
   },
-  createStudent: async (student: any) => {
+
+  createStudent: async (student: Omit<Student, "id">): Promise<Student> => {
     const backendFormat = {
       firstName: student.first_name,
       lastName: student.last_name,
@@ -140,18 +139,17 @@ export const api = {
       rollNumber: student.roll_number,
       parentPhone: student.parent_phone,
       address: student.address,
-      personalEmail: student.personal_email || '',
+      personalEmail: student.personal_email || "",
     };
-    const res = await fetch(`${API_BASE_URL}/students`, {
-      method: 'POST',
+    const data = await apiFetch<ApiStudent>(`${API_BASE_URL}/students`, {
+      method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(backendFormat),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
     return mapStudent(data);
   },
-  updateStudent: async (id, student) => {
+
+  updateStudent: async (id: string, student: Partial<Student>): Promise<Student> => {
     const backendFormat = {
       firstName: student.first_name,
       lastName: student.last_name,
@@ -163,51 +161,42 @@ export const api = {
       parentPhone: student.parent_phone,
       address: student.address,
     };
-    const res = await fetch(`${API_BASE_URL}/students/${id}`, {
-      method: 'PUT',
+    const data = await apiFetch<ApiStudent>(`${API_BASE_URL}/students/${id}`, {
+      method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify(backendFormat),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
     return mapStudent(data);
   },
-  deleteStudent: async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/students/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  },
 
-  getPendingStudents: async () => {
-    const res = await fetch(`${API_BASE_URL}/students?status=pending`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+  deleteStudent: (id: string) =>
+    apiFetch<{ message: string }>(`${API_BASE_URL}/students/${id}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    }),
+
+  getPendingStudents: async (): Promise<Student[]> => {
+    const data = await apiFetch<ApiStudent[]>(`${API_BASE_URL}/students?status=pending`, { headers: getHeaders() });
     return data.map(mapStudent);
   },
 
-  issueCredentials: async (studentId: string, email?: string) => {
-    const res = await fetch(`${API_BASE_URL}/students/${studentId}/issue-credentials`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  },
+  issueCredentials: (studentId: string, email?: string) =>
+    apiFetch<{ message: string; username: string; student: ApiStudent }>(
+      `${API_BASE_URL}/students/${studentId}/issue-credentials`,
+      {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ email }),
+      }
+    ),
 
   // Teachers
-  getTeachers: async () => {
-    const res = await fetch(`${API_BASE_URL}/teachers`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+  getTeachers: async (): Promise<Teacher[]> => {
+    const data = await apiFetch<ApiTeacher[]>(`${API_BASE_URL}/teachers`, { headers: getHeaders() });
     return data.map(mapTeacher);
   },
-  createTeacher: async (teacher) => {
+
+  createTeacher: async (teacher: Omit<Teacher, "id">): Promise<Teacher> => {
     const backendFormat = {
       name: teacher.name,
       email: teacher.email,
@@ -216,93 +205,94 @@ export const api = {
       assignedGrade: teacher.assigned_grade,
       assignedSection: teacher.assigned_section,
     };
-    const res = await fetch(`${API_BASE_URL}/teachers`, {
-      method: 'POST',
+    const data = await apiFetch<ApiTeacher>(`${API_BASE_URL}/teachers`, {
+      method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(backendFormat),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
     return mapTeacher(data);
-  },
-  updateTeacher: async (id, teacher) => {
-    const backendFormat = {
-      name: teacher.name,
-      email: teacher.email,
-      phone: teacher.phone,
-      qualification: teacher.qualification,
-      assignedGrade: teacher.assigned_grade,
-      assignedSection: teacher.assigned_section,
-    };
-    const res = await fetch(`${API_BASE_URL}/teachers/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(backendFormat),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return mapTeacher(data);
-  },
-  deleteTeacher: async (id) => {
-    const res = await fetch(`${API_BASE_URL}/teachers/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
   },
 
+  updateTeacher: async (id: string, teacher: Partial<Teacher>): Promise<Teacher> => {
+    const backendFormat = {
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone,
+      qualification: teacher.qualification,
+      assignedGrade: teacher.assigned_grade,
+      assignedSection: teacher.assigned_section,
+    };
+    const data = await apiFetch<ApiTeacher>(`${API_BASE_URL}/teachers/${id}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(backendFormat),
+    });
+    return mapTeacher(data);
+  },
+
+  deleteTeacher: (id: string) =>
+    apiFetch<{ message: string }>(`${API_BASE_URL}/teachers/${id}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    }),
+
   // Subjects
-  getSubjects: async (params = {}) => {
+  getSubjects: async (params: Record<string, string> = {}): Promise<Subject[]> => {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE_URL}/subjects?${query}`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+    const data = await apiFetch<ApiSubject[]>(`${API_BASE_URL}/subjects?${query}`, { headers: getHeaders() });
     return data.map(mapSubject);
   },
-  createSubject: async (subject) => {
+
+  createSubject: async (subject: Omit<Subject, "id">): Promise<Subject> => {
     const backendFormat = {
       name: subject.name,
       code: subject.code,
       grade: subject.grade,
       teacherId: subject.teacher_id,
     };
-    const res = await fetch(`${API_BASE_URL}/subjects`, {
-      method: 'POST',
+    const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects`, {
+      method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(backendFormat),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
     return mapSubject(data);
   },
-  deleteSubject: async (id) => {
-    const res = await fetch(`${API_BASE_URL}/subjects/${id}`, {
-      method: 'DELETE',
+
+  updateSubject: async (id: string, subject: Partial<Subject>): Promise<Subject> => {
+    const backendFormat = {
+      name: subject.name,
+      code: subject.code,
+      grade: subject.grade,
+      teacherId: subject.teacher_id,
+    };
+    const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects/${id}`, {
+      method: "PUT",
       headers: getHeaders(),
+      body: JSON.stringify(backendFormat),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
+    return mapSubject(data);
   },
 
+  deleteSubject: (id: string) =>
+    apiFetch<{ message: string }>(`${API_BASE_URL}/subjects/${id}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    }),
+
   // Marks
-  getAllMarks: async (params: Record<string, string> = {}) => {
+  getAllMarks: async (params: Record<string, string> = {}): Promise<Mark[]> => {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE_URL}/marks?${query}`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+    const data = await apiFetch<ApiMark[]>(`${API_BASE_URL}/marks?${query}`, { headers: getHeaders() });
     return data.map(mapMark);
   },
-  getMarksForStudent: async (studentId: string) => {
+
+  getMarksForStudent: async (studentId: string): Promise<Mark[]> => {
     if (!studentId) return [];
-    const res = await fetch(`${API_BASE_URL}/marks/${studentId}`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+    const data = await apiFetch<ApiMark[]>(`${API_BASE_URL}/marks/${studentId}`, { headers: getHeaders() });
     return data.map(mapMark);
   },
-  enterMarks: async (mark) => {
+
+  enterMarks: async (mark: Omit<Mark, "id">): Promise<Mark> => {
     const backendFormat = {
       studentId: mark.student_id,
       subjectId: mark.subject_id,
@@ -313,61 +303,34 @@ export const api = {
       maxScore: mark.max_score || 100,
       remarks: mark.remarks || "",
     };
-    const res = await fetch(`${API_BASE_URL}/marks`, {
-      method: 'POST',
+    const data = await apiFetch<ApiMark>(`${API_BASE_URL}/marks`, {
+      method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(backendFormat),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
     return mapMark(data);
   },
 
-  updateSubject: async (id: string, subject: any) => {
-    const backendFormat = {
-      name: subject.name,
-      code: subject.code,
-      grade: subject.grade,
-      teacherId: subject.teacher_id,
-    };
-    const res = await fetch(`${API_BASE_URL}/subjects/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(backendFormat),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return mapSubject(data);
-  },
-
   // Audit Logs
-  getAuditLogs: async (page = 1, limit = 50) => {
-    const res = await fetch(`${API_BASE_URL}/audit-logs?page=${page}&limit=${limit}`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  },
+  getAuditLogs: (page = 1, limit = 50) =>
+    apiFetch<{ logs: unknown[]; total: number; page: number; pages: number }>(
+      `${API_BASE_URL}/audit-logs?page=${page}&limit=${limit}`,
+      { headers: getHeaders() }
+    ),
 
   // Settings
-  getSettings: async () => {
-    const res = await fetch(`${API_BASE_URL}/settings`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  },
-  updateSetting: async (key, value) => {
-    const res = await fetch(`${API_BASE_URL}/settings/${key}`, {
-      method: 'PUT',
+  getSettings: () =>
+    apiFetch<Record<string, unknown>>(`${API_BASE_URL}/settings`, { headers: getHeaders() }),
+
+  updateSetting: (key: string, value: unknown) =>
+    apiFetch<Record<string, unknown>>(`${API_BASE_URL}/settings/${key}`, {
+      method: "PUT",
       headers: getHeaders(),
       body: JSON.stringify({ value }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
-  },
+    }),
 
   // Bulk Import
-  bulkImportStudents: async (students) => {
+  bulkImportStudents: async (students: Omit<Student, "id">[]) => {
     const backendRecords = students.map((s) => ({
       firstName: s.first_name,
       lastName: s.last_name,
@@ -379,38 +342,31 @@ export const api = {
       parentPhone: s.parent_phone,
       address: s.address,
     }));
-    const res = await fetch(`${API_BASE_URL}/students/bulk`, {
-      method: 'POST',
+    return apiFetch<{ message: string; students: ApiStudent[] }>(`${API_BASE_URL}/students/bulk`, {
+      method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({ students: backendRecords }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
   },
 
   // Attendance
-  getAttendance: async (params = {}) => {
+  getAttendance: async (params: Record<string, string> = {}): Promise<AttendanceRecord[]> => {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE_URL}/attendance?${query}`, { headers: getHeaders() });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+    const data = await apiFetch<ApiAttendance[]>(`${API_BASE_URL}/attendance?${query}`, { headers: getHeaders() });
     return data.map(mapAttendance);
   },
-  recordAttendance: async (records) => {
+
+  recordAttendance: (records: Omit<AttendanceRecord, "id">[]) => {
     const backendRecords = records.map((r) => ({
       studentId: r.student_id,
       subjectId: r.subject_id,
       date: r.date,
       status: r.status,
     }));
-    const res = await fetch(`${API_BASE_URL}/attendance/bulk`, {
-      method: 'POST',
+    return apiFetch<{ message: string; records: ApiAttendance[] }>(`${API_BASE_URL}/attendance/bulk`, {
+      method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({ records: backendRecords }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    return data;
   },
 };

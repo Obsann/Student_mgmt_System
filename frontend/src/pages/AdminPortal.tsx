@@ -271,9 +271,9 @@ function ManageStudents() {
         await api.bulkImportStudents(students);
         await loadAllData();
         addToast({ type: "success", title: "Success", message: "Bulk import completed." });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        addToast({ type: "error", title: "Import Failed", message: err.message || "Bulk import failed. Check CSV format." });
+        addToast({ type: "error", title: "Import Failed", message: err instanceof Error ? err.message : "Bulk import failed. Check CSV format." });
       }
     };
     reader.readAsText(file);
@@ -1168,8 +1168,8 @@ function AdminSettings() {
       await api.updateSetting("academicYear", settings.academicYear);
       await api.updateSetting("currentSemester", settings.currentSemester);
       addToast({ type: "success", title: "Success", message: "System settings updated." });
-    } catch (e: any) {
-      addToast({ type: "error", title: "Error", message: e.message || "Failed to save settings." });
+    } catch (e: unknown) {
+      addToast({ type: "error", title: "Error", message: e instanceof Error ? e.message : "Failed to save settings." });
     } finally {
       setSaving(false);
     }
@@ -1226,9 +1226,9 @@ function PendingEnrollments() {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [emailOverrides, setEmailOverrides] = useState<Record<string, string>>({});
 
-  const pendingStudents = state.students.filter((s: any) => s.status === "pending");
+  const pendingStudents = state.students.filter((s) => s.status === "pending");
 
-  const handleIssue = async (student: any) => {
+  const handleIssue = async (student: typeof pendingStudents[number]) => {
     const email = emailOverrides[student.id] || student.personal_email;
     if (!email) {
       addToast({ type: "error", title: "Email Required", message: `Please enter a delivery email for ${student.first_name} ${student.last_name}` });
@@ -1239,8 +1239,8 @@ function PendingEnrollments() {
       const result = await api.issueCredentials(student.id, email);
       addToast({ type: "success", title: "Credentials Issued!", message: result.message });
       await loadAllData();
-    } catch (err: any) {
-      addToast({ type: "error", title: "Failed", message: err.message || "Could not issue credentials" });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Failed", message: err instanceof Error ? err.message : "Could not issue credentials" });
     } finally {
       setLoading((prev) => ({ ...prev, [student.id]: false }));
     }
@@ -1271,7 +1271,7 @@ function PendingEnrollments() {
         </div>
       ) : (
         <div className="space-y-4">
-          {pendingStudents.map((s: any) => (
+          {pendingStudents.map((s) => (
             <div key={s.id} className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm">
               <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                 {/* Student info */}

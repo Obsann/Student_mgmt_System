@@ -24,8 +24,8 @@ export default function ProfilePage() {
       await api.updateProfile({ name: profileData.name, email: profileData.email });
       setIsEditing(false);
       alert("Profile updated successfully!");
-    } catch (err: any) {
-      alert(err.message || "Failed to update profile");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -39,8 +39,8 @@ export default function ProfilePage() {
       setIsChangingPassword(false);
       setPasswordData({ current: "", new: "" });
       alert("Password changed successfully!");
-    } catch (err: any) {
-      alert(err.message || "Failed to change password");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to change password");
     } finally {
       setSaving(false);
     }

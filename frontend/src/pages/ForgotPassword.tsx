@@ -25,8 +25,8 @@ export default function ForgotPassword() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to send reset email");
       setStep("sent");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

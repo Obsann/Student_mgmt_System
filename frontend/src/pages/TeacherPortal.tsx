@@ -602,8 +602,8 @@ function EnrollStudent() {
       setSubmitted(`${form.first_name} ${form.last_name}`);
       setForm({ first_name: "", last_name: "", age: 15, gender: "Male", grade: teacher?.assigned_grade || "9", section: teacher?.assigned_section || "A", roll_number: "", parent_phone: "", address: "", personal_email: "" });
       addToast({ type: "success", title: "Enrollment Submitted", message: "The admin will review and issue credentials." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message || "Enrollment failed" });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "Enrollment failed" });
     } finally {
       setLoading(false);
     }

@@ -24,7 +24,7 @@ router.get("/", protect, async (req, res) => {
       .sort({ date: -1 });
     res.json(records);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -57,7 +57,7 @@ router.post("/bulk", protect, authorize("admin", "teacher"), async (req, res) =>
 
     res.status(201).json({ message: `${results.length} records saved`, records: results });
   } catch (err) {
-    res.status(400).json({ message: "Error recording attendance", error: err.message });
+    res.status(400).json({ message: "Error recording attendance" });
   }
 });
 

@@ -12,7 +12,7 @@ router.get("/", protect, async (req, res) => {
     settings.forEach((s) => { obj[s.key] = s.value; });
     res.json(obj);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -26,7 +26,7 @@ router.put("/:key", protect, authorize("admin"), async (req, res) => {
     );
     res.json(setting);
   } catch (err) {
-    res.status(400).json({ message: "Error updating setting", error: err.message });
+    res.status(400).json({ message: "Error updating setting" });
   }
 });
 

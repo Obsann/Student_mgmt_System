@@ -15,7 +15,7 @@ router.get("/", protect, async (req, res) => {
     const subjects = await Subject.find(filter).populate("teacherId", "name email");
     res.json(subjects);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -35,18 +35,25 @@ router.post("/", protect, authorize("admin"), async (req, res) => {
 
     res.status(201).json(subject);
   } catch (err) {
-    res.status(400).json({ message: "Validation error", error: err.message });
+    res.status(400).json({ message: "Validation error" });
   }
 });
 
 // PUT /api/subjects/:id
 router.put("/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const subject = await Subject.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // Whitelist allowed fields
+    const allowed = ["name", "code", "grade", "teacherId"];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    const subject = await Subject.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     if (!subject) return res.status(404).json({ message: "Subject not found" });
     res.json(subject);
   } catch (err) {
-    res.status(400).json({ message: "Validation error", error: err.message });
+    res.status(400).json({ message: "Validation error" });
   }
 });
 
@@ -57,7 +64,7 @@ router.delete("/:id", protect, authorize("admin"), async (req, res) => {
     if (!subject) return res.status(404).json({ message: "Subject not found" });
     res.json({ message: "Subject deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

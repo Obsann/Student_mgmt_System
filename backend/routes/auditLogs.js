@@ -21,7 +21,7 @@ router.get("/", protect, authorize("admin"), async (req, res) => {
 
     res.json({ logs, total, page: Number(page), pages: Math.ceil(total / limit) });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

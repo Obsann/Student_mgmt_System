@@ -23,17 +23,22 @@ router.get("/", protect, async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(marks);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // GET /api/marks/:studentId — fetch marks for a specific student
 router.get("/:studentId", protect, async (req, res) => {
   try {
+    // Students can only view their own marks
+    if (req.user.role === "student" && String(req.user.refId) !== req.params.studentId) {
+      return res.status(403).json({ message: "Access denied. You can only view your own marks." });
+    }
+
     const marks = await Mark.find({ studentId: req.params.studentId }).populate("subjectId");
     res.json(marks);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -67,7 +72,7 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
 
     res.status(201).json(mark);
   } catch (err) {
-    res.status(400).json({ message: "Validation error", error: err.message });
+    res.status(400).json({ message: "Validation error" });
   }
 });
 

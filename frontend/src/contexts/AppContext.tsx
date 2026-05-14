@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { useToast } from "./ToastContext";
 import { api } from "../services/api";
-import {
+import type {
   AppState,
   User,
   Student,
@@ -10,7 +10,7 @@ import {
   AttendanceRecord,
   Mark,
   Enrollment,
-} from "../data/mockData";
+} from "../types";
 
 // ============================================================
 // Context Types
@@ -98,11 +98,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const mappedUser: User = {
             id: user._id,
             username: user.username,
-            password: "",
-            role: user.role,
+            role: user.role as User["role"],
             name: user.name,
             email: user.email,
-            ref_id: user.refId,
+            ref_id: user.refId || "",
           };
           setCurrentUser(mappedUser);
           await loadAllData();
@@ -149,18 +148,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const mappedUser: User = {
         id: user._id,
         username: user.username,
-        password: "",
-        role: user.role,
+        role: user.role as User["role"],
         name: user.name,
         email: user.email,
-        ref_id: user.refId,
+        ref_id: user.refId || "",
       };
       
       setCurrentUser(mappedUser);
       await loadAllData();
       return null;
-    } catch (err: any) {
-      return err.message || "Invalid username or password";
+    } catch (err: unknown) {
+      return err instanceof Error ? err.message : "Invalid username or password";
     }
   }, []);
 
@@ -179,8 +177,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newStudent = await api.createStudent(s);
       setState((prev) => ({ ...prev, students: [...prev.students, newStudent] }));
       addToast({ type: "success", title: "Student Added", message: `${s.first_name} has been added.` });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -192,8 +190,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         students: prev.students.map((s) => (s.id === id ? updated : s)),
       }));
       addToast({ type: "success", title: "Student Updated", message: "Student information updated." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -205,8 +203,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         students: prev.students.filter((s) => s.id !== id),
       }));
       addToast({ type: "success", title: "Student Deleted", message: "Student removed." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -216,8 +214,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newTeacher = await api.createTeacher(t);
       setState((prev) => ({ ...prev, teachers: [...prev.teachers, newTeacher] }));
       addToast({ type: "success", title: "Teacher Added", message: `${t.name} has been added.` });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -229,8 +227,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         teachers: prev.teachers.map((t) => (t.id === id ? updated : t)),
       }));
       addToast({ type: "success", title: "Teacher Updated", message: "Teacher information updated." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -242,8 +240,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         teachers: prev.teachers.filter((t) => t.id !== id),
       }));
       addToast({ type: "success", title: "Teacher Deleted", message: "Teacher removed." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -253,8 +251,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newSubject = await api.createSubject(s);
       setState((prev) => ({ ...prev, subjects: [...prev.subjects, newSubject] }));
       addToast({ type: "success", title: "Subject Added", message: `${s.name} has been added.` });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -266,8 +264,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         subjects: prev.subjects.map((s) => (s.id === id ? updated : s)),
       }));
       addToast({ type: "success", title: "Subject Updated", message: "Subject updated." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -279,8 +277,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         subjects: prev.subjects.filter((s) => s.id !== id),
       }));
       addToast({ type: "success", title: "Subject Deleted", message: "Subject removed." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -291,8 +289,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const updatedAttendance = await api.getAttendance(); // refresh all
       setState((prev) => ({ ...prev, attendance: updatedAttendance }));
       addToast({ type: "success", title: "Attendance Saved", message: "Attendance records saved successfully." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -306,8 +304,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const updatedMarks = await api.getAllMarks();
       setState((prev) => ({ ...prev, marks: updatedMarks }));
       addToast({ type: "success", title: "Marks Saved", message: "Marks entered successfully." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 
@@ -315,8 +313,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await api.enterMarks({ student_id: '', subject_id: '', academic_year: '', semester: 1, assessment_type: 'quiz' as const, score, max_score: 100, entered_by: '', remarks: '' });
       addToast({ type: "success", title: "Mark Updated", message: "Mark updated successfully." });
-    } catch (err: any) {
-      addToast({ type: "error", title: "Error", message: err.message });
+    } catch (err: unknown) {
+      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "An error occurred" });
     }
   }, [addToast]);
 

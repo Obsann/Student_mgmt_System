@@ -1,8 +1,10 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
 const { protect } = require("../middleware/auth");
+const { sendPasswordResetEmail } = require("../utils/mailer");
 
 const router = express.Router();
 
@@ -50,7 +52,7 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -70,17 +72,20 @@ router.get("/me", async (req, res) => {
   }
 });
 
-// POST /api/auth/register
+// POST /api/auth/register  — PUBLIC registration is ALWAYS student role
 router.post("/register", async (req, res) => {
   try {
-    const { username, password, name, email, role } = req.body;
+    const { username, password, name, email } = req.body;
 
     if (!username || !password || !name || !email) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Only allow student registration from public form
-    const allowedRole = role === "teacher" || role === "admin" ? role : "student";
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email address format" });
+    }
 
     // Check if user already exists
     const existing = await User.findOne({ $or: [{ username }, { email }] });
@@ -92,10 +97,12 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
+    // SECURITY: Public registration is ALWAYS "student" — admin/teacher accounts
+    // can ONLY be created by authenticated admins via the dashboard.
     const user = await User.create({
       username,
       password,
-      role: allowedRole,
+      role: "student",
       name,
       email,
     });
@@ -108,7 +115,7 @@ router.post("/register", async (req, res) => {
       action: "REGISTER",
       entity: "User",
       entityId: user._id.toString(),
-      details: `${user.name} registered as ${user.role}`,
+      details: `${user.name} registered as student`,
       ipAddress: req.ip,
     });
 
@@ -124,7 +131,7 @@ router.post("/register", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Registration failed. Please try again." });
   }
 });
 
@@ -161,7 +168,7 @@ router.put("/password", protect, async (req, res) => {
 
     res.json({ message: "Password updated successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -182,7 +189,7 @@ router.put("/profile", protect, async (req, res) => {
 
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -197,13 +204,25 @@ router.post("/forgot-password", async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "No account found with that email address" });
+      // Return success even if user not found (prevents user enumeration)
+      return res.json({ message: "If an account with that email exists, reset instructions have been sent." });
     }
 
-    // In production, generate a reset token, save it, and send via SMTP/Nodemailer
-    // For now, we log it and return success so the UI flow works
-    const resetToken = require("crypto").randomBytes(32).toString("hex");
-    console.log(`[FORGOT PASSWORD] Reset token for ${email}: ${resetToken}`);
+    // Generate a secure reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    // Store hashed token + expiry in the user document
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    await user.save();
+
+    // Send the reset email (uses dev-mode logging if SMTP not configured)
+    await sendPasswordResetEmail({
+      to: email,
+      name: user.name,
+      token: resetToken, // Send the UNHASHED token — user submits it, we hash to compare
+    });
 
     await AuditLog.create({
       userId: user._id,
@@ -215,9 +234,55 @@ router.post("/forgot-password", async (req, res) => {
       ipAddress: req.ip,
     });
 
-    res.json({ message: "Password reset instructions sent to your email" });
+    res.json({ message: "If an account with that email exists, reset instructions have been sent." });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Something went wrong. Please try again." });
+  }
+});
+
+// POST /api/auth/reset-password — consume reset token and set new password
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    // Hash the incoming token and look up the user
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    // Set new password and clear token
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    await AuditLog.create({
+      userId: user._id,
+      userName: user.name,
+      action: "PASSWORD_RESET_COMPLETE",
+      entity: "User",
+      entityId: user._id.toString(),
+      details: `Password reset completed for ${user.email}`,
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: "Password has been reset successfully. You can now log in." });
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong. Please try again." });
   }
 });
 

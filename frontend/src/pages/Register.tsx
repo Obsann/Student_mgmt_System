@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GraduationCap, ArrowRight, Mail, Lock, User, UserSquare2 } from "lucide-react";
+import { GraduationCap, ArrowRight, Mail, Lock, User } from "lucide-react";
 import { cn } from "../lib/utils";
 import { api } from "../services/api";
 
@@ -12,7 +12,6 @@ export default function Register() {
     email: "",
     username: "",
     password: "",
-    role: "student" as "student" | "teacher" | "admin",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,10 +22,10 @@ export default function Register() {
     setError("");
 
     try {
-      await api.register(form.username, form.password, form.name, form.email, form.role);
+      await api.register(form.username, form.password, form.name, form.email);
       navigate("/login", { state: { message: "Registration successful! Please log in." }});
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -87,27 +86,6 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Role Selection */}
-            <div className="grid grid-cols-3 gap-3">
-              {(["student", "teacher", "admin"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setForm({ ...form, role: r })}
-                  className={cn(
-                    "py-3 px-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-2 flex flex-col items-center gap-2",
-                    form.role === r 
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm" 
-                      : "border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:bg-gray-50"
-                  )}
-                >
-                  {r === "student" && <GraduationCap size={18} />}
-                  {r === "teacher" && <UserSquare2 size={18} />}
-                  {r === "admin" && <User size={18} />}
-                  {r}
-                </button>
-              ))}
-            </div>
 
             <div className="space-y-4 pt-2">
               <div className="relative group">

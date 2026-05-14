@@ -49,7 +49,7 @@ router.get("/", protect, async (req, res) => {
     const students = await Student.find(filter).sort({ status: -1, grade: 1, section: 1, rollNumber: 1 });
     res.json(students);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -66,9 +66,18 @@ router.get("/:id", protect, async (req, res) => {
       return res.status(403).json({ message: "Access denied." });
     }
 
+    // Teachers can only view students in their assigned grade/section
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const teacher = await Teacher.findById(req.user.refId);
+      if (teacher && (student.grade !== teacher.assignedGrade || student.section !== teacher.assignedSection)) {
+        return res.status(403).json({ message: "Access denied. Student is not in your assigned class." });
+      }
+    }
+
     res.json(student);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -88,12 +97,13 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
 
     const student = await Student.create(studentData);
 
-    // If admin creates directly → also create user account immediately
+    // If admin creates directly → also create user account with generated password
     if (isAdmin) {
       const username = generateUsername(req.body.firstName, req.body.lastName, student._id.toString().slice(-3));
+      const password = generatePassword();
       await User.create({
         username,
-        password: "student123",
+        password,
         role: "student",
         name: `${req.body.firstName} ${req.body.lastName}`,
         email: req.body.personalEmail || `${username}@keraschool.et`,
@@ -113,7 +123,7 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
 
     res.status(201).json(student);
   } catch (err) {
-    res.status(400).json({ message: "Validation error", error: err.message });
+    res.status(400).json({ message: "Validation error" });
   }
 });
 
@@ -186,7 +196,7 @@ router.post("/:id/issue-credentials", protect, authorize("admin"), async (req, r
       student,
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -204,9 +214,10 @@ router.post("/bulk", protect, authorize("admin"), async (req, res) => {
     for (const s of studentList) {
       const student = await Student.create({ ...s, status: "active" });
       const username = generateUsername(s.firstName, s.lastName, student._id.toString().slice(-3));
+      const password = generatePassword();
       await User.create({
         username,
-        password: "student123",
+        password,
         role: "student",
         name: `${s.firstName} ${s.lastName}`,
         email: s.personalEmail || `${username}@keraschool.et`,
@@ -226,7 +237,7 @@ router.post("/bulk", protect, authorize("admin"), async (req, res) => {
 
     res.status(201).json({ message: `${created.length} students imported`, students: created });
   } catch (err) {
-    res.status(400).json({ message: "Bulk import error", error: err.message });
+    res.status(400).json({ message: "Bulk import error" });
   }
 });
 
@@ -235,7 +246,14 @@ router.post("/bulk", protect, authorize("admin"), async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.put("/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    // Whitelist allowed fields — prevent overwriting status, addedBy, etc.
+    const allowed = ["firstName", "lastName", "age", "gender", "grade", "section", "rollNumber", "parentPhone", "address", "personalEmail"];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+
+    const student = await Student.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     await AuditLog.create({
@@ -250,7 +268,7 @@ router.put("/:id", protect, authorize("admin"), async (req, res) => {
 
     res.json(student);
   } catch (err) {
-    res.status(400).json({ message: "Validation error", error: err.message });
+    res.status(400).json({ message: "Validation error" });
   }
 });
 
@@ -276,7 +294,7 @@ router.delete("/:id", protect, authorize("admin"), async (req, res) => {
 
     res.json({ message: "Student deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
