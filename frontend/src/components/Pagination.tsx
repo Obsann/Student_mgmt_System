@@ -53,16 +53,16 @@ export default function Pagination({
   return (
     <div className={`flex items-center justify-between ${className}`}>
       {showInfo && totalItems && (
-        <div className="text-sm text-gray-500">
-          Showing {startItem} to {endItem} of {totalItems} results
+        <div className="text-sm text-slate-500 font-medium">
+          Showing <span className="font-bold text-slate-700">{startItem}</span> to <span className="font-bold text-slate-700">{endItem}</span> of <span className="font-bold text-slate-700">{totalItems}</span>
         </div>
       )}
 
-      <div className="flex items-center space-x-1">
+      <div className="flex items-center space-x-1.5">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-slate-600"
           aria-label="Previous page"
         >
           <ChevronLeft size={16} />
@@ -73,16 +73,16 @@ export default function Pagination({
             key={index}
             onClick={() => typeof page === "number" && onPageChange(page)}
             disabled={page === "..."}
-            className={`px-3 py-2 rounded-lg border transition-colors ${
+            className={`px-3.5 py-2 rounded-xl border text-sm font-bold transition-all ${
               page === currentPage
-                ? "bg-blue-600 text-white border-blue-600"
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20"
                 : page === "..."
-                ? "border-transparent cursor-default"
-                : "border-gray-300 hover:bg-gray-50"
+                ? "border-transparent cursor-default text-slate-400"
+                : "border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 text-slate-600"
             }`}
           >
             {page === "..." ? (
-              <MoreHorizontal size={16} className="text-gray-400" />
+              <MoreHorizontal size={16} className="text-slate-400" />
             ) : (
               page
             )}
@@ -92,7 +92,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-slate-600"
           aria-label="Next page"
         >
           <ChevronRight size={16} />

@@ -16,15 +16,15 @@ export default function EmptyState({
   className = ""
 }: EmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center py-12 px-4 text-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center py-16 px-6 text-center animate-fade-up ${className}`}>
       {icon && (
-        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 mb-6 shadow-sm">
           {icon}
         </div>
       )}
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-xl font-extrabold text-slate-900 mb-2 tracking-tight">{title}</h3>
       {description && (
-        <p className="text-sm text-gray-500 max-w-sm mb-6">{description}</p>
+        <p className="text-sm text-slate-500 max-w-sm mb-8 font-medium leading-relaxed">{description}</p>
       )}
       {action}
     </div>

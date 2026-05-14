@@ -59,11 +59,13 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-scale">
         {/* Cover Photo */}
-        <div className="h-48 bg-gradient-to-r from-blue-600 to-indigo-700 relative">
+        <div className="h-56 bg-gradient-to-br from-indigo-500 via-purple-500 to-blue-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.15),transparent_50%)]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32" />
           {isEditing && (
-            <button className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-white text-sm font-medium border border-white/30 hover:bg-white/30 transition-colors flex items-center gap-2">
+            <button className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-2xl text-white text-sm font-bold border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2 shadow-lg">
               <Upload size={16} /> Update Cover
             </button>
           )}
@@ -71,19 +73,19 @@ export default function ProfilePage() {
 
         {/* Profile Info */}
         <div className="px-8 pb-8 relative">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-16 sm:-mt-20 mb-6">
-            <div className="relative">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-16 sm:-mt-20 mb-8">
+            <div className="relative group">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl border-4 border-white bg-white shadow-xl overflow-hidden flex items-center justify-center ring-4 ring-white/50">
                 {currentUser.avatar ? (
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className={`w-full h-full flex items-center justify-center text-4xl font-bold ${roleColor}`}>
+                  <div className={`w-full h-full flex items-center justify-center text-5xl font-black ${roleColor}`}>
                     {currentUser.name.charAt(0)}
                   </div>
                 )}
               </div>
               {isEditing && (
-                <button className="absolute bottom-2 right-2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-700 transition-colors border-2 border-white">
+                <button className="absolute bottom-2 right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all border-2 border-white hover:scale-110">
                   <Edit3 size={18} />
                 </button>
               )}
@@ -91,91 +93,91 @@ export default function ProfilePage() {
 
             <div className="flex-1 pb-2">
               <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{profileData.name}</h1>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5 ${roleColor}`}>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{profileData.name}</h1>
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest border flex items-center gap-1.5 ${roleColor}`}>
                   <RoleIcon size={14} />
                   {currentUser.role}
                 </span>
               </div>
-              <p className="text-gray-500 font-medium">{profileData.bio}</p>
+              <p className="text-slate-500 font-medium">{profileData.bio}</p>
             </div>
 
             <div className="pb-2 w-full sm:w-auto">
               {isEditing ? (
-                <div className="flex gap-2">
-                  <button onClick={() => setIsEditing(false)} className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors w-full sm:w-auto">
+                <div className="flex gap-3">
+                  <button onClick={() => setIsEditing(false)} className="px-6 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-all w-full sm:w-auto">
                     Cancel
                   </button>
-                  <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors shadow-md w-full sm:w-auto disabled:opacity-50">
+                  <button onClick={handleSave} disabled={saving} className="px-6 py-3 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 w-full sm:w-auto disabled:opacity-50">
                     {saving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
+                <button onClick={() => setIsEditing(true)} className="px-6 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
                   <Edit3 size={16} /> Edit Profile
                 </button>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-12">
             {/* Contact Details */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Contact Information</h3>
+            <div className="space-y-6 animate-fade-up">
+              <h3 className="text-lg font-extrabold text-slate-900 border-b border-slate-100 pb-4">Contact Information</h3>
               <div className="space-y-4">
-                <div className="flex items-center gap-4 text-gray-600">
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
+                  <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500 shadow-sm">
                     <Mail size={20} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs text-gray-400 mb-0.5">Email Address</p>
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Email Address</p>
                     {isEditing ? (
                       <input 
                         type="email" 
                         value={profileData.email} 
                         onChange={e => setProfileData({...profileData, email: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-gray-900"
+                        className="w-full px-3 py-2 rounded-xl border-2 border-slate-100 focus:border-indigo-500 outline-none text-sm font-bold text-slate-900 bg-white transition-all"
                       />
                     ) : (
-                      <p className="text-sm font-medium text-gray-900">{profileData.email}</p>
+                      <p className="text-sm font-bold text-slate-900">{profileData.email}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-gray-600">
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
+                  <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500 shadow-sm">
                     <Phone size={20} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs text-gray-400 mb-0.5">Phone Number</p>
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Phone Number</p>
                     {isEditing ? (
                       <input 
                         type="text" 
                         value={profileData.phone} 
                         onChange={e => setProfileData({...profileData, phone: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-gray-900"
+                        className="w-full px-3 py-2 rounded-xl border-2 border-slate-100 focus:border-indigo-500 outline-none text-sm font-bold text-slate-900 bg-white transition-all"
                       />
                     ) : (
-                      <p className="text-sm font-medium text-gray-900">{profileData.phone}</p>
+                      <p className="text-sm font-bold text-slate-900">{profileData.phone}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-gray-600">
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
+                  <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500 shadow-sm">
                     <MapPin size={20} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs text-gray-400 mb-0.5">Location</p>
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Location</p>
                     {isEditing ? (
                       <input 
                         type="text" 
                         value={profileData.address} 
                         onChange={e => setProfileData({...profileData, address: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-gray-900"
+                        className="w-full px-3 py-2 rounded-xl border-2 border-slate-100 focus:border-indigo-500 outline-none text-sm font-bold text-slate-900 bg-white transition-all"
                       />
                     ) : (
-                      <p className="text-sm font-medium text-gray-900">{profileData.address}</p>
+                      <p className="text-sm font-bold text-slate-900">{profileData.address}</p>
                     )}
                   </div>
                 </div>
@@ -183,48 +185,48 @@ export default function ProfilePage() {
             </div>
 
             {/* Account Details */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Account Security</h3>
+            <div className="space-y-6 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+              <h3 className="text-lg font-extrabold text-slate-900 border-b border-slate-100 pb-4">Account Security</h3>
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-sm font-bold text-gray-900">Password</p>
-                    <button onClick={() => setIsChangingPassword(!isChangingPassword)} className="text-xs font-bold text-blue-600 hover:text-blue-700">
+                    <p className="text-sm font-extrabold text-slate-900">Password</p>
+                    <button onClick={() => setIsChangingPassword(!isChangingPassword)} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 px-3 py-1 rounded-lg hover:bg-indigo-50 transition-colors">
                       {isChangingPassword ? "Cancel" : "Change"}
                     </button>
                   </div>
                   {isChangingPassword ? (
-                    <div className="space-y-3 mt-3">
+                    <div className="space-y-3 mt-4">
                       <input 
                         type="password" 
                         placeholder="Current Password" 
                         value={passwordData.current}
                         onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-100 text-sm font-medium outline-none focus:border-indigo-500 bg-white transition-all"
                       />
                       <input 
                         type="password" 
                         placeholder="New Password (min 6 chars)" 
                         value={passwordData.new}
                         onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-100 text-sm font-medium outline-none focus:border-indigo-500 bg-white transition-all"
                       />
-                      <button onClick={handlePasswordChange} disabled={saving} className="px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg disabled:opacity-50 hover:bg-blue-700">
+                      <button onClick={handlePasswordChange} disabled={saving} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl disabled:opacity-50 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20">
                         {saving ? "Saving..." : "Update Password"}
                       </button>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">Update your account password</p>
+                    <p className="text-xs text-slate-500 font-medium">Update your account password</p>
                   )}
                 </div>
                 
-                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 flex justify-between items-center">
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:border-indigo-200 transition-colors">
                   <div>
-                    <p className="text-sm font-bold text-gray-900 mb-1">Two-Factor Authentication</p>
-                    <p className="text-xs text-gray-500">Add an extra layer of security</p>
+                    <p className="text-sm font-extrabold text-slate-900 mb-1">Two-Factor Authentication</p>
+                    <p className="text-xs text-slate-500 font-medium">Add an extra layer of security</p>
                   </div>
-                  <div className="w-10 h-6 bg-gray-300 rounded-full relative cursor-pointer">
-                    <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1"></div>
+                  <div className="w-11 h-6 bg-slate-300 rounded-full relative cursor-pointer hover:bg-slate-400 transition-colors">
+                    <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-1 shadow-sm"></div>
                   </div>
                 </div>
               </div>

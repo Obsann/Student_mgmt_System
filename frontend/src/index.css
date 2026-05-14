@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ─── Google Fonts ────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 html {
   scroll-behavior: smooth;
 }
@@ -9,13 +12,13 @@ html {
   translate: no; /* modern spec */
 }
 
-
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Custom scrollbar */
+/* ─── Custom Scrollbar ────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -25,31 +28,43 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(107, 114, 128, 0.3);
-  border-radius: 3px;
+  background: rgba(107, 114, 128, 0.2);
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 114, 128, 0.5);
+  background: rgba(107, 114, 128, 0.4);
 }
 
-/* Code block scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.15);
+  border-radius: 99px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.3);
+}
+
 pre::-webkit-scrollbar {
   height: 4px;
 }
 
 pre::-webkit-scrollbar-thumb {
-  background: rgba(107, 114, 128, 0.3);
-  border-radius: 2px;
+  background: rgba(107, 114, 128, 0.2);
+  border-radius: 99px;
 }
 
-/* Selection */
+/* ─── Selection ──────────────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background: rgba(99, 102, 241, 0.25);
   color: white;
 }
 
-/* ─── MedSchedule Animations ─────────────────────────────────────────────────── */
+/* ─── MedSchedule Animations ─────────────────────────────────────────────── */
 @keyframes slide-in {
   from { opacity: 0; transform: translateX(100px); }
   to { opacity: 1; transform: translateX(0); }
@@ -81,16 +96,21 @@ pre::-webkit-scrollbar-thumb {
 }
 
 @keyframes fade-scale {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .animate-slide-in {
-  animation: slide-in 0.3s ease-out;
+  animation: slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-fade-in {
-  animation: fade-in 0.4s ease-out;
+  animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .animate-pulse-soft {
@@ -114,7 +134,13 @@ pre::-webkit-scrollbar-thumb {
   animation: fade-scale 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Glass card effect */
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ─── Glass card effect ──────────────────────────────────────────────────── */
 .glass-card {
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(20px);
@@ -125,6 +151,13 @@ pre::-webkit-scrollbar-thumb {
 .glass-card:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ─── Focus ring utility ─────────────────────────────────────────────────── */
+.focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
 }
 
 /* ─── Google Translate Widget Overrides ───────────────────────────────────── */
@@ -143,23 +176,24 @@ body {
 
 .goog-te-gadget .goog-te-combo {
   font-size: 13px;
-  padding: 6px 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  padding: 6px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   outline: none;
   background: white;
   color: #374151;
   cursor: pointer;
+  font-weight: 600;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .goog-te-gadget .goog-te-combo:hover {
-  border-color: #93c5fd;
+  border-color: #a5b4fc;
 }
 
 .goog-te-gadget .goog-te-combo:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .goog-te-gadget > span {

@@ -24,43 +24,46 @@ function TeacherDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
-        <h2 className="text-xl font-bold">Welcome, {teacher?.name || currentUser?.name}!</h2>
-        <p className="text-blue-200 text-sm mt-1">Here's your teaching overview for today.</p>
-        <div className="grid grid-cols-3 gap-4 mt-4">
-          <div className="bg-white/10 rounded-xl p-3">
-            <div className="text-2xl font-black">{mySubjects.length}</div>
-            <div className="text-xs text-blue-200">My Subjects</div>
-          </div>
-          <div className="bg-white/10 rounded-xl p-3">
-            <div className="text-2xl font-black">{totalStudents}</div>
-            <div className="text-xs text-blue-200">My Students</div>
-          </div>
-          <div className="bg-white/10 rounded-xl p-3">
-            <div className="text-2xl font-black">{myMarks.length}</div>
-            <div className="text-xs text-blue-200">Marks Entered</div>
+      <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden animate-fade-scale group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 transition-transform duration-700 group-hover:scale-110"></div>
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black">Welcome, {teacher?.name || currentUser?.name}!</h2>
+          <p className="text-blue-100 text-sm mt-2 font-medium">Here's your teaching overview for today.</p>
+          <div className="grid grid-cols-3 gap-6 mt-6">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-colors cursor-default">
+              <div className="text-3xl font-black">{mySubjects.length}</div>
+              <div className="text-xs text-blue-100 font-bold uppercase tracking-wider mt-1">My Subjects</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-colors cursor-default">
+              <div className="text-3xl font-black">{totalStudents}</div>
+              <div className="text-xs text-blue-100 font-bold uppercase tracking-wider mt-1">My Students</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-colors cursor-default">
+              <div className="text-3xl font-black">{myMarks.length}</div>
+              <div className="text-xs text-blue-100 font-bold uppercase tracking-wider mt-1">Marks Entered</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-up">
         {mySubjects.map((sub) => {
           const enrolled = state.enrollments.filter((e) => e.subject_id === sub.id).length;
           const marksCount = state.marks.filter((m) => m.subject_id === sub.id && m.entered_by === teacherId).length;
           const attCount = state.attendance.filter((a) => a.subject_id === sub.id).length;
           return (
-            <div key={sub.id} className="bg-white rounded-2xl border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-3">
+            <div key={sub.id} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold">{sub.code}</span>
-                  <h3 className="font-bold text-gray-900 mt-1">{sub.name}</h3>
+                  <span className="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase tracking-widest">{sub.code}</span>
+                  <h3 className="font-black text-slate-900 mt-2 text-lg">{sub.name}</h3>
                 </div>
-                <span className="text-xs text-gray-400">Grade {sub.grade}</span>
+                <span className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg">Grade {sub.grade}</span>
               </div>
-              <div className="flex gap-3 text-xs text-gray-500">
-                <span>👥 {enrolled} students</span>
-                <span>📝 {marksCount} marks</span>
-                <span>📋 {attCount} attendance</span>
+              <div className="flex gap-4 text-xs font-semibold text-slate-500 bg-slate-50 p-3 rounded-2xl group-hover:bg-indigo-50/50 transition-colors">
+                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400"></div>{enrolled} students</span>
+                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400"></div>{marksCount} marks</span>
+                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-400"></div>{attCount} attendance</span>
               </div>
             </div>
           );
@@ -182,7 +185,7 @@ function TakeAttendance() {
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all animate-fade-in">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
@@ -226,8 +229,8 @@ function TakeAttendance() {
       </div>
 
       {/* Student List */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="divide-y divide-gray-50 max-h-[500px] overflow-y-auto">
+      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
+        <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto custom-scrollbar">
           {students.map((student, index) => {
             const status = records[student.id] || "present";
             const isFocused = focusedIndex === index;
@@ -385,7 +388,7 @@ function EnterMarks() {
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all animate-fade-in">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
@@ -415,7 +418,7 @@ function EnterMarks() {
       </div>
 
       {/* Mark Entry Grid */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -617,14 +620,19 @@ function EnrollStudent() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <UserPlus size={24} />
-          <h2 className="text-xl font-bold">Enroll New Student</h2>
+      <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden animate-fade-scale group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 transition-transform duration-700 group-hover:scale-110"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm group-hover:rotate-12 transition-transform">
+              <UserPlus size={28} />
+            </div>
+            <h2 className="text-2xl font-black">Enroll New Student</h2>
+          </div>
+          <p className="text-blue-100 text-sm font-medium leading-relaxed max-w-xl">
+            Fill in the student's details collected during registration. The enrollment will be sent to the admin for approval. Credentials will be emailed to the student's Gmail.
+          </p>
         </div>
-        <p className="text-blue-100 text-sm">
-          Fill in the student's details collected during registration. The enrollment will be sent to the admin for approval. Credentials will be emailed to the student's Gmail.
-        </p>
       </div>
 
       {submitted && (
@@ -636,7 +644,7 @@ function EnrollStudent() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5 shadow-sm">
+      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6 shadow-sm hover:shadow-md transition-all animate-fade-up">
         <div className="grid grid-cols-2 gap-4">
           <Field label="First Name">
             <input required value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} className={inputCls} placeholder="e.g. Mekdes" />

@@ -31,57 +31,58 @@ function StudentDashboard() {
   return (
     <div className="space-y-6">
       {/* Profile Card */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-black">
+      <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-8 text-white shadow-xl shadow-emerald-500/20 relative overflow-hidden animate-fade-scale group">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-700 group-hover:scale-125"></div>
+        <div className="relative z-10 flex items-center gap-5">
+          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-3xl font-black shadow-inner group-hover:rotate-6 transition-transform">
             {student?.first_name?.[0] || "S"}
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold">{student?.first_name} {student?.last_name}</h2>
-            <p className="text-green-200 text-sm">Grade {student?.grade}{student?.section} • Roll: {student?.roll_number}</p>
+            <h2 className="text-2xl font-black">{student?.first_name} {student?.last_name}</h2>
+            <p className="text-emerald-100 text-sm mt-1 font-medium bg-black/10 inline-block px-3 py-1 rounded-xl">Grade {student?.grade}{student?.section} • Roll: {student?.roll_number}</p>
           </div>
-          <div className="hidden sm:block text-right">
-            <div className="text-3xl font-black">{avgScore}%</div>
-            <div className="text-green-200 text-xs">Overall Average</div>
+          <div className="hidden sm:block text-right pr-4">
+            <div className="text-4xl font-black">{avgScore}%</div>
+            <div className="text-emerald-100 text-xs mt-1 font-bold uppercase tracking-widest">Overall Avg</div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600"><BookOpen size={18} /></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-blue-50 text-blue-600"><BookOpen size={20} /></div>
             <div>
-              <div className="text-lg font-bold text-gray-900">{myMarks.length}</div>
-              <div className="text-[10px] text-gray-400">Total Marks</div>
+              <div className="text-2xl font-black text-slate-900 leading-none">{myMarks.length}</div>
+              <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Total Marks</div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-green-50 text-green-600"><TrendingUp size={18} /></div>
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600"><TrendingUp size={20} /></div>
             <div>
-              <div className="text-lg font-bold text-gray-900">{attendanceRate}%</div>
-              <div className="text-[10px] text-gray-400">Attendance Rate</div>
+              <div className="text-2xl font-black text-slate-900 leading-none">{attendanceRate}%</div>
+              <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Attendance</div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl ${grade.color.split(" ")[1]} ${grade.color.split(" ")[0]}`}><Award size={18} /></div>
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl ${grade.color.split(" ")[1]} ${grade.color.split(" ")[0]}`}><Award size={20} /></div>
             <div>
-              <div className={`text-lg font-bold ${grade.color.split(" ")[0]}`}>{grade.grade}</div>
-              <div className="text-[10px] text-gray-400">Letter Grade</div>
+              <div className={`text-2xl font-black leading-none ${grade.color.split(" ")[0]}`}>{grade.grade}</div>
+              <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Letter Grade</div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-orange-50 text-orange-600"><Calendar size={18} /></div>
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-orange-50 text-orange-600"><Calendar size={20} /></div>
             <div>
-              <div className="text-lg font-bold text-gray-900">{myAttendance.length}</div>
-              <div className="text-[10px] text-gray-400">Attendance Records</div>
+              <div className="text-2xl font-black text-slate-900 leading-none">{myAttendance.length}</div>
+              <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Records</div>
             </div>
           </div>
         </div>
@@ -144,17 +145,20 @@ function StudentDashboard() {
 
       {/* Profile Details */}
       {student && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <User size={16} className="text-green-500" /> Personal Information
+        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all animate-fade-up">
+          <h3 className="text-base font-extrabold text-slate-900 mb-5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
+              <User size={16} />
+            </div>
+            Personal Information
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-            <div><span className="text-gray-400 text-xs">Full Name</span><div className="font-medium text-gray-900">{student.first_name} {student.last_name}</div></div>
-            <div><span className="text-gray-400 text-xs">Age</span><div className="font-medium text-gray-900">{student.age}</div></div>
-            <div><span className="text-gray-400 text-xs">Gender</span><div className="font-medium text-gray-900">{student.gender}</div></div>
-            <div><span className="text-gray-400 text-xs">Grade & Section</span><div className="font-medium text-gray-900">{student.grade}{student.section}</div></div>
-            <div><span className="text-gray-400 text-xs">Roll Number</span><div className="font-medium text-gray-900 font-mono">{student.roll_number}</div></div>
-            <div><span className="text-gray-400 text-xs">Parent Phone</span><div className="font-medium text-gray-900 font-mono">{student.parent_phone}</div></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Full Name</span><div className="font-black text-slate-900 mt-1">{student.first_name} {student.last_name}</div></div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Age</span><div className="font-black text-slate-900 mt-1">{student.age}</div></div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Gender</span><div className="font-black text-slate-900 mt-1">{student.gender}</div></div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Grade & Section</span><div className="font-black text-slate-900 mt-1">{student.grade}{student.section}</div></div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Roll Number</span><div className="font-black text-slate-900 mt-1 font-mono">{student.roll_number}</div></div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Parent Phone</span><div className="font-black text-slate-900 mt-1 font-mono">{student.parent_phone}</div></div>
           </div>
         </div>
       )}
@@ -216,32 +220,32 @@ function MyMarks() {
       </div>
 
       {grouped.map(({ subId, subject, marks, avg }) => (
-        <div key={subId} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="p-4 flex items-center justify-between bg-gray-50 border-b border-gray-100">
+        <div key={subId} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
+          <div className="p-5 flex items-center justify-between bg-slate-50 border-b border-slate-100">
             <div>
-              <h3 className="font-bold text-gray-900 text-sm">{subject?.name || "Unknown"}</h3>
-              <span className="text-[10px] text-gray-400">Grade {subject?.grade} • {marks.length} assessments</span>
+              <h3 className="font-black text-slate-900 text-base">{subject?.name || "Unknown"}</h3>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1 inline-block">Grade {subject?.grade} • {marks.length} assessments</span>
             </div>
-            <div className={`text-lg font-black ${avg >= 70 ? "text-green-600" : avg >= 50 ? "text-yellow-600" : "text-red-600"}`}>
+            <div className={`text-2xl font-black px-3 py-1.5 rounded-xl border ${avg >= 70 ? "text-green-600 bg-green-50 border-green-100" : avg >= 50 ? "text-yellow-600 bg-yellow-50 border-yellow-100" : "text-red-600 bg-red-50 border-red-100"}`}>
               {avg}%
             </div>
           </div>
-          <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
             {marks.map((m) => (
               <div
                 key={m.id}
-                className={`p-3 rounded-xl text-center ${
-                  m.score >= 70 ? "bg-green-50 border border-green-100" :
-                  m.score >= 50 ? "bg-yellow-50 border border-yellow-100" :
-                  "bg-red-50 border border-red-100"
+                className={`p-4 rounded-2xl text-center group hover:-translate-y-1 transition-all ${
+                  m.score >= 70 ? "bg-green-50 border border-green-100 hover:shadow-md hover:shadow-green-100" :
+                  m.score >= 50 ? "bg-yellow-50 border border-yellow-100 hover:shadow-md hover:shadow-yellow-100" :
+                  "bg-red-50 border border-red-100 hover:shadow-md hover:shadow-red-100"
                 }`}
               >
-                <div className="text-[10px] text-gray-500 capitalize mb-1">{m.assessment_type}</div>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className={`text-xl font-black ${getEthiopianGrade(m.score).color.split(" ")[0]}`}>
+                <div className="text-[11px] font-bold text-slate-500 capitalize mb-2 uppercase tracking-wider">{m.assessment_type}</div>
+                <div className="flex items-baseline justify-center gap-1.5">
+                  <span className={`text-3xl font-black ${getEthiopianGrade(m.score).color.split(" ")[0]} group-hover:scale-110 transition-transform`}>
                     {m.score}
                   </span>
-                  <span className={`text-xs font-bold ${getEthiopianGrade(m.score).color.split(" ")[0]}`}>
+                  <span className={`text-sm font-bold ${getEthiopianGrade(m.score).color.split(" ")[0]}`}>
                     ({getEthiopianGrade(m.score).grade})
                   </span>
                 </div>

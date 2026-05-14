@@ -29,17 +29,17 @@ export default function FormField({
   const hasSuccess = !!success && !hasError;
 
   return (
-    <div className={`space-y-1.5 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {label && (
-        <label htmlFor={fieldId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={fieldId} className="block text-sm font-bold text-slate-700">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
 
-      <div className="relative">
+      <div className="relative group">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
             {leftIcon}
           </div>
         )}
@@ -48,54 +48,54 @@ export default function FormField({
           {...props}
           id={fieldId}
           className={`
-            w-full px-4 py-2.5 rounded-xl border bg-white transition-all outline-none
-            ${leftIcon ? "pl-10" : ""}
-            ${rightIcon ? "pr-10" : ""}
+            w-full px-4 py-3 rounded-2xl border-2 bg-slate-50 transition-all outline-none font-medium
+            ${leftIcon ? "pl-11" : ""}
+            ${rightIcon ? "pr-11" : ""}
             ${hasError
-              ? "border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              ? "border-red-300 focus:border-red-500 focus:bg-white bg-red-50/50"
               : hasSuccess
-              ? "border-green-300 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              ? "border-green-300 focus:border-green-500 focus:bg-white bg-green-50/50"
+              : "border-slate-100 focus:border-indigo-500 focus:bg-white"
             }
-            text-gray-900 placeholder-gray-400
+            text-slate-900 placeholder-slate-400
           `}
         />
 
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
             {rightIcon}
           </div>
         )}
 
         {hasError && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
             <AlertCircle size={18} className="text-red-500" />
           </div>
         )}
 
         {hasSuccess && !rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
             <CheckCircle2 size={18} className="text-green-500" />
           </div>
         )}
       </div>
 
       {hasError && (
-        <p className="text-sm text-red-600 flex items-center gap-1">
+        <p className="text-sm text-red-600 font-semibold flex items-center gap-1.5">
           <AlertCircle size={14} />
           {error}
         </p>
       )}
 
       {hasSuccess && (
-        <p className="text-sm text-green-600 flex items-center gap-1">
+        <p className="text-sm text-green-600 font-semibold flex items-center gap-1.5">
           <CheckCircle2 size={14} />
           {success}
         </p>
       )}
 
       {helperText && !hasError && !hasSuccess && (
-        <p className="text-sm text-gray-500">{helperText}</p>
+        <p className="text-xs text-slate-400 font-medium">{helperText}</p>
       )}
     </div>
   );

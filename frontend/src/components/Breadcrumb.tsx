@@ -1,5 +1,5 @@
 import { ChevronRight, Home } from "lucide-react";
-import { Link } from "react-router-dom"; // We'll use this for navigation
+import { Link } from "react-router-dom";
 
 interface BreadcrumbItem {
   label: string;
@@ -15,26 +15,26 @@ interface BreadcrumbProps {
 export default function Breadcrumb({ items, className = "" }: BreadcrumbProps) {
   return (
     <nav className={`flex items-center space-x-2 text-sm ${className}`} aria-label="Breadcrumb">
-      <ol className="flex items-center space-x-2">
+      <ol className="flex items-center space-x-1">
         {items.map((item, index) => (
           <li key={index} className="flex items-center">
-            {index > 0 && <ChevronRight size={16} className="text-gray-400 mx-2" />}
+            {index > 0 && <ChevronRight size={14} className="text-slate-300 mx-1.5" />}
 
             {item.current ? (
-              <span className="text-gray-900 font-medium" aria-current="page">
+              <span className="text-slate-900 font-extrabold px-2 py-1" aria-current="page">
                 {item.label}
               </span>
             ) : item.href ? (
               <Link
                 to={item.href}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-slate-400 hover:text-indigo-600 transition-colors font-bold px-2 py-1 rounded-lg hover:bg-indigo-50"
               >
-                {index === 0 && <Home size={16} className="inline mr-1" />}
+                {index === 0 && <Home size={14} className="inline mr-1.5 -mt-0.5" />}
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-500">
-                {index === 0 && <Home size={16} className="inline mr-1" />}
+              <span className="text-slate-400 font-bold px-2 py-1">
+                {index === 0 && <Home size={14} className="inline mr-1.5 -mt-0.5" />}
                 {item.label}
               </span>
             )}
