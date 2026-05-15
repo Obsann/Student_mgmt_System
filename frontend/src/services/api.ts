@@ -1,7 +1,7 @@
 import type {
   Student, Teacher, Subject, Mark, AttendanceRecord,
   ApiStudent, ApiTeacher, ApiSubject, ApiMark, ApiAttendance,
-  LoginResponse, ApiError,
+  LoginResponse,
 } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
@@ -76,11 +76,43 @@ const mapAttendance = (a: ApiAttendance): AttendanceRecord => ({
 
 // ─── Generic fetch helper ─────────────────────────────────────────────────────
 
+const FETCH_TIMEOUT_MS = 45000; // 45 seconds for cold starts
+
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options);
-  const data = await res.json();
-  if (!res.ok) throw new Error((data as ApiError).message || "Request failed");
-  return data as T;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+      return null as any; // Handle empty 204 responses
+    }
+
+    if (!res.ok) {
+      const errData = data as any;
+      if (res.status === 401 && errData.code === "TOKEN_EXPIRED") {
+        window.dispatchEvent(new CustomEvent("auth:session-expired"));
+      }
+      throw new Error(errData.message || errData.error || `Request failed with status ${res.status}`);
+    }
+    
+    return data as T;
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out. The server might be waking up, please try again.");
+    }
+    throw error;
+  }
 }
 
 // ─── API Methods ──────────────────────────────────────────────────────────────

@@ -23,7 +23,6 @@ function AdminRoutes() {
     { id: "subjects", path: "/subjects", label: "Subjects", icon: <BookOpen size={18} /> },
     { id: "reports", path: "/reports", label: "Reports", icon: <BarChart3 size={18} /> },
     { id: "audit-logs", path: "/audit-logs", label: "Audit Logs", icon: <ClipboardCheck size={18} /> },
-    { id: "settings", path: "/settings", label: "System Settings", icon: <Award size={18} /> },
   ];
   return (
     <Routes>
@@ -36,7 +35,6 @@ function AdminRoutes() {
         <Route path="/subjects" element={<AdminPortal activePage="subjects" />} />
         <Route path="/reports" element={<AdminPortal activePage="reports" />} />
         <Route path="/audit-logs" element={<AdminPortal activePage="audit-logs" />} />
-        <Route path="/settings" element={<AdminPortal activePage="settings" />} />
         <Route path="/profile" element={<AdminPortal activePage="profile" />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

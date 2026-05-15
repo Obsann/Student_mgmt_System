@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GraduationCap, ArrowRight, Mail, Lock, User } from "lucide-react";
-import { cn } from "../lib/utils";
+
 import { api } from "../services/api";
 
 export default function Register() {

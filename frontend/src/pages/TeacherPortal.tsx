@@ -48,7 +48,7 @@ function TeacherDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-up">
         {mySubjects.map((sub) => {
-          const enrolled = state.enrollments.filter((e) => e.subject_id === sub.id).length;
+          const enrolled = state.students.filter((s) => s.grade === sub.grade).length;
           const marksCount = state.marks.filter((m) => m.subject_id === sub.id && m.entered_by === teacherId).length;
           const attCount = state.attendance.filter((a) => a.subject_id === sub.id).length;
           return (
