@@ -5,13 +5,23 @@ const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
-    role: { type: String, enum: ["admin", "teacher", "student"], required: true },
+    role: { type: String, enum: ["admin", "teacher", "student", "registrar"], required: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
     refId: { type: mongoose.Schema.Types.ObjectId, refPath: "role" },
     // Password reset fields
     resetPasswordToken: { type: String, default: undefined },
     resetPasswordExpires: { type: Date, default: undefined },
+    // Profile Customization
+    avatar: { type: String, default: "" },
+    coverPhoto: { type: String, default: "" },
+    // Identity Verification
+    verificationQuestions: [
+      {
+        question: { type: String },
+        answer: { type: String }
+      }
+    ]
   },
   { timestamps: true }
 );

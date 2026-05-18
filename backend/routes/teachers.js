@@ -12,7 +12,7 @@ function generatePassword(length = 10) {
   return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 // GET /api/teachers
-router.get("/", protect, authorize("admin"), async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     const teachers = await Teacher.find().populate("subjects");
     res.json(teachers);

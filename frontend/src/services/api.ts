@@ -1,7 +1,7 @@
 import type {
   Student, Teacher, Subject, Mark, AttendanceRecord,
   ApiStudent, ApiTeacher, ApiSubject, ApiMark, ApiAttendance,
-  LoginResponse,
+  LoginResponse, ApiUser,
 } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
@@ -19,18 +19,31 @@ const getHeaders = (): Record<string, string> => {
 const mapStudent = (s: ApiStudent): Student => ({
   id: s._id,
   first_name: s.firstName,
+  middle_name: s.middleName,
   last_name: s.lastName,
-  age: s.age,
+  date_of_birth: s.dateOfBirth,
   gender: s.gender,
+  fayda_id: s.faydaId,
+  grade_8_gpa: s.grade8GPA,
+  previous_school: s.previousSchool,
+  national_exam_number: s.nationalExamNumber,
+  address: {
+    region: s.address.region,
+    zone: s.address.zone,
+    kebele: s.address.kebele,
+    house_no: s.address.houseNo,
+  },
+  guardian_name: s.guardianName,
+  guardian_relation: s.guardianRelation,
+  parent_phone: s.parentPhone,
   grade: s.grade,
   section: s.section,
   roll_number: s.rollNumber,
-  parent_phone: s.parentPhone,
-  address: s.address,
   enrolled_date: s.enrolledDate,
   status: s.status || "active",
   personal_email: s.personalEmail || "",
   credentials_issued_at: s.credentialsIssuedAt || null,
+  avatar: s.avatar || "",
 });
 
 const mapTeacher = (t: ApiTeacher): Teacher => ({
@@ -42,6 +55,7 @@ const mapTeacher = (t: ApiTeacher): Teacher => ({
   subjects: t.subjects?.map((s) => (typeof s === "string" ? s : s._id)) || [],
   assigned_grade: t.assignedGrade,
   assigned_section: t.assignedSection,
+  avatar: t.avatar || "",
 });
 
 const mapSubject = (s: ApiSubject): Subject => ({
@@ -127,10 +141,7 @@ export const api = {
     }),
 
   getMe: () =>
-    apiFetch<{ _id: string; username: string; role: string; name: string; email?: string; refId?: string }>(
-      `${API_BASE_URL}/auth/me`,
-      { headers: getHeaders() }
-    ),
+    apiFetch<ApiUser>(`${API_BASE_URL}/auth/me`, { headers: getHeaders() }),
 
   register: (username: string, password: string, name: string, email: string) =>
     apiFetch<LoginResponse>(`${API_BASE_URL}/auth/register`, {
@@ -146,11 +157,23 @@ export const api = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  updateProfile: (updates: { name?: string; email?: string }) =>
+  updateProfile: (updates: FormData) =>
     apiFetch<Record<string, unknown>>(`${API_BASE_URL}/auth/profile`, {
       method: "PUT",
-      headers: getHeaders(),
-      body: JSON.stringify(updates),
+      headers: {
+        ...(localStorage.getItem("sms_token") && { Authorization: `Bearer ${localStorage.getItem("sms_token")}` }),
+      },
+      body: updates,
+    }),
+
+  getVerificationQuestions: (username: string) =>
+    apiFetch<{ questions: string[] }>(`${API_BASE_URL}/auth/verification-questions/${encodeURIComponent(username)}`),
+
+  forgotPassword: (username: string, answers: string[]) =>
+    apiFetch<{ message: string }>(`${API_BASE_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, answers }),
     }),
 
   // Students
@@ -163,15 +186,27 @@ export const api = {
   createStudent: async (student: Omit<Student, "id">): Promise<Student> => {
     const backendFormat = {
       firstName: student.first_name,
+      middleName: student.middle_name,
       lastName: student.last_name,
-      age: student.age,
+      dateOfBirth: student.date_of_birth,
       gender: student.gender,
+      faydaId: student.fayda_id,
+      grade8GPA: student.grade_8_gpa,
+      previousSchool: student.previous_school,
+      nationalExamNumber: student.national_exam_number,
+      address: {
+        region: student.address.region,
+        zone: student.address.zone,
+        kebele: student.address.kebele,
+        houseNo: student.address.house_no,
+      },
+      guardianName: student.guardian_name,
+      guardianRelation: student.guardian_relation,
+      parentPhone: student.parent_phone,
+      personalEmail: student.personal_email || "",
       grade: student.grade,
       section: student.section,
       rollNumber: student.roll_number,
-      parentPhone: student.parent_phone,
-      address: student.address,
-      personalEmail: student.personal_email || "",
     };
     const data = await apiFetch<ApiStudent>(`${API_BASE_URL}/students`, {
       method: "POST",
@@ -182,17 +217,32 @@ export const api = {
   },
 
   updateStudent: async (id: string, student: Partial<Student>): Promise<Student> => {
-    const backendFormat = {
-      firstName: student.first_name,
-      lastName: student.last_name,
-      age: student.age,
-      gender: student.gender,
-      grade: student.grade,
-      section: student.section,
-      rollNumber: student.roll_number,
-      parentPhone: student.parent_phone,
-      address: student.address,
-    };
+    const backendFormat: any = {};
+    if (student.first_name) backendFormat.firstName = student.first_name;
+    if (student.middle_name) backendFormat.middleName = student.middle_name;
+    if (student.last_name) backendFormat.lastName = student.last_name;
+    if (student.date_of_birth) backendFormat.dateOfBirth = student.date_of_birth;
+    if (student.gender) backendFormat.gender = student.gender;
+    if (student.fayda_id) backendFormat.faydaId = student.fayda_id;
+    if (student.grade_8_gpa) backendFormat.grade8GPA = student.grade_8_gpa;
+    if (student.previous_school) backendFormat.previousSchool = student.previous_school;
+    if (student.national_exam_number) backendFormat.nationalExamNumber = student.national_exam_number;
+    if (student.address) {
+      backendFormat.address = {
+        region: student.address.region,
+        zone: student.address.zone,
+        kebele: student.address.kebele,
+        houseNo: student.address.house_no,
+      };
+    }
+    if (student.guardian_name) backendFormat.guardianName = student.guardian_name;
+    if (student.guardian_relation) backendFormat.guardianRelation = student.guardian_relation;
+    if (student.parent_phone) backendFormat.parentPhone = student.parent_phone;
+    if (student.grade) backendFormat.grade = student.grade;
+    if (student.section) backendFormat.section = student.section;
+    if (student.roll_number) backendFormat.rollNumber = student.roll_number;
+    if (student.status) backendFormat.status = student.status;
+
     const data = await apiFetch<ApiStudent>(`${API_BASE_URL}/students/${id}`, {
       method: "PUT",
       headers: getHeaders(),
@@ -246,14 +296,14 @@ export const api = {
   },
 
   updateTeacher: async (id: string, teacher: Partial<Teacher>): Promise<Teacher> => {
-    const backendFormat = {
-      name: teacher.name,
-      email: teacher.email,
-      phone: teacher.phone,
-      qualification: teacher.qualification,
-      assignedGrade: teacher.assigned_grade,
-      assignedSection: teacher.assigned_section,
-    };
+    const backendFormat: any = {};
+    if (teacher.name) backendFormat.name = teacher.name;
+    if (teacher.email) backendFormat.email = teacher.email;
+    if (teacher.phone) backendFormat.phone = teacher.phone;
+    if (teacher.qualification) backendFormat.qualification = teacher.qualification;
+    if (teacher.assigned_grade) backendFormat.assignedGrade = teacher.assigned_grade;
+    if (teacher.assigned_section) backendFormat.assignedSection = teacher.assigned_section;
+
     const data = await apiFetch<ApiTeacher>(`${API_BASE_URL}/teachers/${id}`, {
       method: "PUT",
       headers: getHeaders(),
@@ -291,12 +341,12 @@ export const api = {
   },
 
   updateSubject: async (id: string, subject: Partial<Subject>): Promise<Subject> => {
-    const backendFormat = {
-      name: subject.name,
-      code: subject.code,
-      grade: subject.grade,
-      teacherId: subject.teacher_id,
-    };
+    const backendFormat: any = {};
+    if (subject.name) backendFormat.name = subject.name;
+    if (subject.code) backendFormat.code = subject.code;
+    if (subject.grade) backendFormat.grade = subject.grade;
+    if (subject.teacher_id) backendFormat.teacherId = subject.teacher_id;
+
     const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects/${id}`, {
       method: "PUT",
       headers: getHeaders(),
@@ -365,14 +415,26 @@ export const api = {
   bulkImportStudents: async (students: Omit<Student, "id">[]) => {
     const backendRecords = students.map((s) => ({
       firstName: s.first_name,
+      middleName: s.middle_name,
       lastName: s.last_name,
-      age: s.age,
+      dateOfBirth: s.date_of_birth,
       gender: s.gender,
+      faydaId: s.fayda_id,
+      grade8GPA: s.grade_8_gpa,
+      previousSchool: s.previous_school,
+      nationalExamNumber: s.national_exam_number,
+      address: {
+        region: s.address.region,
+        zone: s.address.zone,
+        kebele: s.address.kebele,
+        houseNo: s.address.house_no,
+      },
+      guardianName: s.guardian_name,
+      guardianRelation: s.guardian_relation,
+      parentPhone: s.parent_phone,
       grade: s.grade,
       section: s.section,
       rollNumber: s.roll_number,
-      parentPhone: s.parent_phone,
-      address: s.address,
     }));
     return apiFetch<{ message: string; students: ApiStudent[] }>(`${API_BASE_URL}/students/bulk`, {
       method: "POST",

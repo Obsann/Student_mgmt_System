@@ -1,80 +1,167 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  CheckCircle2, Save, UserPlus, Send, Mail,
+  CheckCircle2, Save, UserPlus, Search, Award, TrendingUp, CalendarDays,
+  LayoutGrid, List as ListIcon, X, User, Phone, MapPin, Edit3, ClipboardList, Check
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { useToast } from "../contexts/ToastContext";
-import { api } from "../services/api";
 import ProfilePage from "./ProfilePage";
+import StudentRegistrationForm from "../components/StudentRegistrationForm";
 import { getEthiopianGrade } from "../utils/gradeCalculator";
 
 // ============================================================
 // TEACHER DASHBOARD
 // ============================================================
 function TeacherDashboard() {
+  const navigate = useNavigate();
   const { currentUser, state, getSubjectsByTeacher } = useApp();
   const teacherId = currentUser?.ref_id || "";
   const mySubjects = getSubjectsByTeacher(teacherId);
   const teacher = state.teachers.find((t) => t.id === teacherId);
 
-  const totalStudents = state.students.filter((s) => s.grade === teacher?.assigned_grade && s.section === teacher?.assigned_section).length;
-
   const myMarks = state.marks.filter((m) => m.entered_by === teacherId);
 
+  // Top performers logic
+  const myStudents = state.students.filter((s) => s.grade === teacher?.assigned_grade && s.section === teacher?.assigned_section);
+  
+  const studentAverages = myStudents.map(student => {
+    const studentMarks = myMarks.filter(m => m.student_id === student.id);
+    const avg = studentMarks.length > 0 
+      ? Math.round(studentMarks.reduce((sum, m) => sum + (m.score / (m.max_score || 100)) * 100, 0) / studentMarks.length)
+      : 0;
+    return { ...student, avg };
+  }).filter(s => s.avg > 0).sort((a, b) => b.avg - a.avg).slice(0, 3);
+
+  const upcomingEvents = [
+    { title: "Mid-Term Examinations", date: "Oct 15, 2025", type: "Exam" },
+    { title: "Parent-Teacher Meeting", date: "Oct 22, 2025", type: "Meeting" },
+    { title: "Staff Development Day", date: "Nov 05, 2025", type: "Holiday" }
+  ];
 
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden animate-fade-scale group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 transition-transform duration-700 group-hover:scale-110"></div>
-        <div className="relative z-10">
-          <h2 className="text-3xl font-black">Welcome, {teacher?.name || currentUser?.name}!</h2>
-          <p className="text-blue-100 text-sm mt-2 font-medium">Here's your teaching overview for today.</p>
-          <div className="grid grid-cols-3 gap-6 mt-6">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-colors cursor-default">
-              <div className="text-3xl font-black">{mySubjects.length}</div>
-              <div className="text-xs text-blue-100 font-bold uppercase tracking-wider mt-1">My Subjects</div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold tracking-wider mb-4 border border-white/20 backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              SEMESTER 1 ONGOING
             </div>
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-colors cursor-default">
-              <div className="text-3xl font-black">{totalStudents}</div>
-              <div className="text-xs text-blue-100 font-bold uppercase tracking-wider mt-1">My Students</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 hover:bg-white/20 transition-colors cursor-default">
-              <div className="text-3xl font-black">{myMarks.length}</div>
-              <div className="text-xs text-blue-100 font-bold uppercase tracking-wider mt-1">Marks Entered</div>
-            </div>
+            <h2 className="text-3xl font-black">Welcome back, {teacher?.name || currentUser?.name}!</h2>
+            <p className="text-blue-100 text-sm mt-2 font-medium max-w-lg">
+              You have {mySubjects.length} subjects to manage today. Your class overall performance is looking solid this week. Keep up the great work!
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-sm font-medium text-blue-100 uppercase tracking-widest mb-1">Current Date</div>
+            <div className="text-2xl font-bold">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-up">
-        {mySubjects.map((sub) => {
-          const enrolled = state.students.filter((s) => s.grade === sub.grade).length;
-          const marksCount = state.marks.filter((m) => m.subject_id === sub.id && m.entered_by === teacherId).length;
-          const attCount = state.attendance.filter((a) => a.subject_id === sub.id).length;
-          return (
-            <div key={sub.id} className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 text-[11px] font-black uppercase tracking-widest">{sub.code}</span>
-                  <h3 className="font-black text-slate-900 mt-2 text-lg">{sub.name}</h3>
-                </div>
-                <span className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg">Grade {sub.grade}</span>
-              </div>
-              <div className="flex gap-4 text-xs font-semibold text-slate-500 bg-slate-50 p-3 rounded-2xl group-hover:bg-indigo-50/50 transition-colors">
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400"></div>{enrolled} students</span>
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400"></div>{marksCount} marks</span>
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-400"></div>{attCount} attendance</span>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+            <button onClick={() => navigate("/attendance")} className="bg-white border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 hover:shadow-md hover:border-blue-200 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform"><CheckCircle2 /></div>
+              <span className="text-xs font-bold text-slate-600">Attendance</span>
+            </button>
+            <button onClick={() => navigate("/marks")} className="bg-white border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 hover:shadow-md hover:indigo-200 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Edit3 /></div>
+              <span className="text-xs font-bold text-slate-600">Enter Marks</span>
+            </button>
+            <button onClick={() => navigate("/students")} className="bg-white border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 hover:shadow-md hover:purple-200 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform"><User /></div>
+              <span className="text-xs font-bold text-slate-600">My Students</span>
+            </button>
+            <button onClick={() => navigate("/register")} className="bg-white border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 hover:shadow-md hover:emerald-200 transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform"><UserPlus /></div>
+              <span className="text-xs font-bold text-slate-600">Register</span>
+            </button>
+          </div>
+
+          {/* Subjects Overview */}
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 animate-fade-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-extrabold text-slate-900 flex items-center gap-2"><TrendingUp className="text-blue-500 w-5 h-5"/> Subject Overview</h3>
             </div>
-          );
-        })}
+            <div className="space-y-4">
+              {mySubjects.map(sub => {
+                const subMarks = myMarks.filter(m => m.subject_id === sub.id);
+                const avg = subMarks.length > 0 ? Math.round(subMarks.reduce((sum, m) => sum + (m.score / (m.max_score||100))*100, 0) / subMarks.length) : 0;
+                
+                return (
+                  <div key={sub.id} className="p-4 rounded-2xl border border-slate-50 hover:bg-slate-50 transition-colors">
+                    <div className="flex justify-between items-center mb-2">
+                      <div>
+                        <div className="font-bold text-sm text-slate-900">{sub.name} <span className="text-xs text-slate-400 font-normal ml-2">Grade {sub.grade}</span></div>
+                      </div>
+                      <div className="font-mono font-bold text-sm">{avg > 0 ? `${avg}%` : 'N/A'}</div>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                      <div className={`h-2 rounded-full transition-all duration-1000 ${avg >= 80 ? 'bg-green-500' : avg >= 60 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${avg}%` }}></div>
+                    </div>
+                  </div>
+                )
+              })}
+              {mySubjects.length === 0 && <div className="text-sm text-slate-500 text-center py-4">No subjects assigned yet.</div>}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {/* Top Performers */}
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center gap-2 mb-6">
+              <Award className="text-orange-500 w-5 h-5" />
+              <h3 className="font-extrabold text-slate-900">Top Performers</h3>
+            </div>
+            <div className="space-y-4">
+              {studentAverages.length > 0 ? studentAverages.map((student, idx) => (
+                <div key={student.id} className="flex items-center gap-4">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${idx === 0 ? 'bg-orange-100 text-orange-600' : idx === 1 ? 'bg-slate-100 text-slate-600' : 'bg-orange-50 text-orange-800'}`}>
+                    #{idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-slate-900 truncate">{student.first_name} {student.last_name}</div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-widest">{student.roll_number}</div>
+                  </div>
+                  <div className="font-mono font-bold text-sm text-green-600">{student.avg}%</div>
+                </div>
+              )) : (
+                <div className="text-xs text-slate-500 text-center py-4">Enter marks to see top performers.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Upcoming Events */}
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 animate-fade-up" style={{ animationDelay: '0.4s' }}>
+            <div className="flex items-center gap-2 mb-6">
+              <CalendarDays className="text-indigo-500 w-5 h-5" />
+              <h3 className="font-extrabold text-slate-900">Upcoming Events</h3>
+            </div>
+            <div className="space-y-4">
+              {upcomingEvents.map((evt, idx) => (
+                <div key={idx} className="flex items-start gap-4">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">{evt.title}</div>
+                    <div className="text-xs text-slate-500 mt-1">{evt.date} • {evt.type}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 // ============================================================
-// TAKE ATTENDANCE (Keyboard-Driven, Low-Click Design)
+// TAKE ATTENDANCE
 // ============================================================
 function TakeAttendance() {
   const { currentUser, state, recordAttendance, getSubjectsByTeacher, getAttendanceForDate } = useApp();
@@ -95,7 +182,6 @@ function TakeAttendance() {
         .sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
-  // Load existing attendance for this date/subject
   useEffect(() => {
     if (selectedSubject && selectedDate) {
       const existing = getAttendanceForDate(selectedSubject, selectedDate);
@@ -105,7 +191,6 @@ function TakeAttendance() {
         setRecords(loaded);
         setSubmitted(true);
       } else {
-        // Default all to present (low-click design!)
         const defaults: Record<string, "present" | "absent" | "late" | "excused"> = {};
         students.forEach((s) => { defaults[s.id] = "present"; });
         setRecords(defaults);
@@ -131,29 +216,11 @@ function TakeAttendance() {
     const student = students[index];
     if (!student) return;
     switch (e.key.toLowerCase()) {
-      case "p":
-        e.preventDefault();
-        setStatus(student.id, "present");
-        if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); }
-        break;
-      case "a":
-        e.preventDefault();
-        setStatus(student.id, "absent");
-        if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); }
-        break;
-      case "l":
-        e.preventDefault();
-        setStatus(student.id, "late");
-        if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); }
-        break;
-      case "arrowdown":
-        e.preventDefault();
-        if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); }
-        break;
-      case "arrowup":
-        e.preventDefault();
-        if (index > 0) { setFocusedIndex(index - 1); rowRefs.current[index - 1]?.focus(); }
-        break;
+      case "p": e.preventDefault(); setStatus(student.id, "present"); if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); } break;
+      case "a": e.preventDefault(); setStatus(student.id, "absent"); if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); } break;
+      case "l": e.preventDefault(); setStatus(student.id, "late"); if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); } break;
+      case "arrowdown": e.preventDefault(); if (index < students.length - 1) { setFocusedIndex(index + 1); rowRefs.current[index + 1]?.focus(); } break;
+      case "arrowup": e.preventDefault(); if (index > 0) { setFocusedIndex(index - 1); rowRefs.current[index - 1]?.focus(); } break;
     }
   };
 
@@ -173,6 +240,7 @@ function TakeAttendance() {
     present: students.filter((s) => records[s.id] === "present").length,
     absent: students.filter((s) => records[s.id] === "absent").length,
     late: students.filter((s) => records[s.id] === "late").length,
+    excused: students.filter((s) => records[s.id] === "excused").length,
   };
 
   const markAllPresent = () => {
@@ -182,119 +250,176 @@ function TakeAttendance() {
     setSubmitted(false);
   };
 
+  // Generate mock history chart data based on overall records
+  const chartDays = Array.from({length: 7}).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const ds = d.toISOString().split("T")[0];
+    const recs = state.attendance.filter(a => a.date === ds && a.subject_id === selectedSubject);
+    const p = recs.filter(r => r.status === 'present').length;
+    const a = recs.filter(r => r.status === 'absent').length;
+    const l = recs.filter(r => r.status === 'late').length;
+    const total = p + a + l || 1;
+    return { date: d.toLocaleDateString('en-US', {weekday: 'short'}), p: Math.round(p/total*100), a: Math.round(a/total*100) };
+  });
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* 4 Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Present</div>
+          <div className="text-2xl font-black text-green-600">{counts.present}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Absent</div>
+          <div className="text-2xl font-black text-red-600">{counts.absent}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Late</div>
+          <div className="text-2xl font-black text-yellow-600">{counts.late}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Excused</div>
+          <div className="text-2xl font-black text-slate-600">{counts.excused}</div>
+        </div>
+      </div>
+
       {/* Controls */}
       <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all animate-fade-in">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-medium text-slate-600 mb-1">Subject</label>
             <select
               value={selectedSubject}
               onChange={(e) => { setSelectedSubject(e.target.value); setSubmitted(false); }}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
             >
               {mySubjects.map((s) => (
                 <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+          <div className="w-full md:w-auto">
+            <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => { setSelectedDate(e.target.value); setSubmitted(false); }}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
             />
           </div>
-          <div className="flex items-end">
-            <button onClick={markAllPresent} className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-              Mark All Present
+          <div className="w-full md:w-auto flex justify-between md:block">
+            <button onClick={markAllPresent} className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors whitespace-nowrap flex items-center gap-2">
+              <Check className="w-4 h-4"/> Mark All Present
             </button>
           </div>
         </div>
 
-        {/* Summary & Keyboard Hints */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 gap-2">
-          <div className="flex gap-4 text-sm">
-            <span className="text-green-600 font-medium">✅ {counts.present} Present</span>
-            <span className="text-red-600 font-medium">❌ {counts.absent} Absent</span>
-            <span className="text-yellow-600 font-medium">⏰ {counts.late} Late</span>
+        <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-[10px] text-blue-600 bg-blue-50 px-3 py-1 rounded-lg font-bold uppercase tracking-widest">
+            ⌨️ Shortcuts: P (Present), A (Absent), L (Late), ↑↓ (Navigate)
           </div>
-          <div className="text-[10px] text-blue-600 bg-blue-50 px-3 py-1 rounded-lg font-medium">
-            ⌨️ Keys: <b>P</b> Present, <b>A</b> Absent, <b>L</b> Late, <b>↑↓</b> Navigate
-          </div>
+          {submitted && <div className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Saved</div>}
         </div>
       </div>
 
-      {/* Student List */}
-      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
-        <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto custom-scrollbar">
-          {students.map((student, index) => {
-            const status = records[student.id] || "present";
-            const isFocused = focusedIndex === index;
-            return (
-              <div
-                key={student.id}
-                ref={(el) => { rowRefs.current[index] = el; }}
-                tabIndex={0}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                onClick={() => cycleStatus(student.id)}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all outline-none ${
-                  isFocused ? "ring-2 ring-blue-400 ring-inset bg-blue-50/50" : "hover:bg-gray-50"
-                }`}
-              >
-                <span className="w-6 text-center text-xs text-gray-400 font-mono">{index + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {student.first_name} {student.last_name}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {/* Student List */}
+          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
+            <div className="divide-y divide-slate-50 max-h-[600px] overflow-y-auto custom-scrollbar">
+              {students.map((student, index) => {
+                const status = records[student.id] || "present";
+                const isFocused = focusedIndex === index;
+                const initials = student.first_name[0] + student.last_name[0];
+                return (
+                  <div
+                    key={student.id}
+                    ref={(el) => { rowRefs.current[index] = el; }}
+                    tabIndex={0}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    onClick={() => cycleStatus(student.id)}
+                    className={`flex items-center gap-4 px-6 py-4 cursor-pointer transition-all outline-none ${
+                      isFocused ? "ring-2 ring-blue-400 ring-inset bg-blue-50/50" : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="w-6 text-center text-xs font-bold text-slate-400">{index + 1}</span>
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 shrink-0">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-900 truncate">
+                        {student.first_name} {student.last_name}
+                      </div>
+                      <div className="text-xs text-slate-500 font-mono">{student.roll_number}</div>
+                    </div>
+                    <div className="shrink-0 flex gap-1">
+                       <button onClick={(e) => { e.stopPropagation(); setStatus(student.id, "present"); }} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${status === 'present' ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>P</button>
+                       <button onClick={(e) => { e.stopPropagation(); setStatus(student.id, "absent"); }} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${status === 'absent' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>A</button>
+                       <button onClick={(e) => { e.stopPropagation(); setStatus(student.id, "late"); }} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${status === 'late' ? 'bg-yellow-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>L</button>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-gray-400">{student.roll_number}</div>
+                );
+              })}
+              {students.length === 0 && (
+                <div className="py-16 flex flex-col items-center justify-center text-slate-400">
+                  <ClipboardList className="w-12 h-12 mb-3 text-slate-200" />
+                  <p className="text-sm font-medium">Select a subject to see students</p>
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all select-none ${
-                    status === "present" ? "bg-green-100 text-green-700" :
-                    status === "absent" ? "bg-red-100 text-red-700" :
-                    status === "late" ? "bg-yellow-100 text-yellow-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {status === "present" ? "✅ Present" : status === "absent" ? "❌ Absent" : status === "late" ? "⏰ Late" : "📝 Excused"}
-                </span>
-              </div>
-            );
-          })}
-          {students.length === 0 && (
-            <div className="py-12 text-center text-gray-400 text-sm">Select a subject to see students</div>
+              )}
+            </div>
+          </div>
+
+          {/* Submit */}
+          {students.length > 0 && (
+            <button
+              onClick={handleSubmit}
+              disabled={submitted}
+              className={`w-full py-4 mt-6 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                submitted
+                  ? "bg-green-100 text-green-700 border border-green-200 shadow-inner"
+                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
+              }`}
+            >
+              {submitted ? (
+                <><CheckCircle2 size={18} /> Attendance Submitted Successfully</>
+              ) : (
+                <><Save size={18} /> Save Attendance for {selectedDate}</>
+              )}
+            </button>
           )}
         </div>
-      </div>
 
-      {/* Submit */}
-      {students.length > 0 && (
-        <button
-          onClick={handleSubmit}
-          disabled={submitted}
-          className={`w-full py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
-            submitted
-              ? "bg-green-100 text-green-700 border border-green-200"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
-        >
-          {submitted ? (
-            <><CheckCircle2 size={18} /> Attendance Submitted Successfully</>
-          ) : (
-            <><Save size={18} /> Submit Attendance ({students.length} students)</>
-          )}
-        </button>
-      )}
+        <div className="hidden lg:block">
+           <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm sticky top-24">
+              <h3 className="font-extrabold text-slate-900 mb-6">Attendance Trend (7 Days)</h3>
+              <div className="h-48 flex items-end justify-between gap-2">
+                 {chartDays.map((d, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                      <div className="w-full flex-1 bg-slate-50 rounded-t-md relative overflow-hidden flex flex-col justify-end">
+                         {/* Absent red bar */}
+                         <div className="w-full bg-red-400 transition-all duration-500" style={{ height: `${d.a}%` }}></div>
+                         {/* Present green bar */}
+                         <div className="w-full bg-green-400 transition-all duration-500" style={{ height: `${d.p}%` }}></div>
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase">{d.date}</div>
+                    </div>
+                 ))}
+              </div>
+              <div className="flex items-center justify-center gap-4 mt-6 text-xs font-bold text-slate-500">
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-400"></div> Present</div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-400"></div> Absent</div>
+              </div>
+           </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ============================================================
-// ENTER MARKS (Spreadsheet Grid)
+// ENTER MARKS
 // ============================================================
 function EnterMarks() {
   const { currentUser, state, enterMarks, getSubjectsByTeacher } = useApp();
@@ -314,7 +439,6 @@ function EnterMarks() {
     ? state.students.filter((s) => s.grade === teacher.assigned_grade && s.section === teacher.assigned_section).sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
-  // Load existing marks
   useEffect(() => {
     const loaded: Record<string, string> = {};
     const savedState: Record<string, boolean> = {};
@@ -352,6 +476,7 @@ function EnterMarks() {
   const handleRemarkChange = (studentId: string, value: string) => {
     setRemarks((prev) => ({ ...prev, [studentId]: value }));
     setSaved((prev) => ({ ...prev, [studentId]: false }));
+    setSubmitted(false);
   };
 
   const handleSubmit = async () => {
@@ -376,130 +501,184 @@ function EnterMarks() {
     setSaved(allSaved);
   };
 
-  const enteredCount = Object.values(scores).filter((s) => s !== "").length;
-  const avgScore = enteredCount > 0
-    ? Math.round(
-        Object.values(scores)
-          .filter((s) => s !== "")
-          .reduce((sum, s) => sum + Number(s), 0) / enteredCount
-      )
-    : 0;
+  const enteredScores = Object.values(scores).filter(s => s !== "").map(Number);
+  const enteredCount = enteredScores.length;
+  const avgScore = enteredCount > 0 ? Math.round(enteredScores.reduce((a,b)=>a+b,0)/enteredCount) : 0;
+  const highest = enteredCount > 0 ? Math.max(...enteredScores) : 0;
+  const lowest = enteredCount > 0 ? Math.min(...enteredScores) : 0;
+
+  // Grade Distribution
+  const dist = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+  enteredScores.forEach(s => {
+    const p = (s / maxScore) * 100;
+    if (p >= 90) dist.A++;
+    else if (p >= 80) dist.B++;
+    else if (p >= 60) dist.C++;
+    else if (p >= 50) dist.D++;
+    else dist.F++;
+  });
+  const maxDist = Math.max(dist.A, dist.B, dist.C, dist.D, dist.F, 1);
 
   return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all animate-fade-in">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
-            <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900">
-              {mySubjects.map((s) => <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>)}
-            </select>
+    <div className="space-y-6">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Class Average</div>
+          <div className="text-2xl font-black text-slate-900">{avgScore}<span className="text-base text-slate-400">/{maxScore}</span></div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Highest</div>
+          <div className="text-2xl font-black text-green-600">{highest}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lowest</div>
+          <div className="text-2xl font-black text-red-600">{lowest}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Entered</div>
+          <div className="text-2xl font-black text-blue-600">{enteredCount}<span className="text-base text-slate-400">/{students.length}</span></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
+          {/* Controls */}
+          <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Subject</label>
+                <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                  {mySubjects.map((s) => <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Assessment</label>
+                <select value={assessmentType} onChange={(e) => setAssessmentType(e.target.value as typeof assessmentType)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                  <option value="quiz">Quiz</option>
+                  <option value="assignment">Assignment</option>
+                  <option value="midterm">Midterm</option>
+                  <option value="final">Final Exam</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Max Score</label>
+                <input type="number" min={1} value={maxScore} onChange={(e) => setMaxScore(Number(e.target.value) || 100)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Assessment</label>
-            <select value={assessmentType} onChange={(e) => setAssessmentType(e.target.value as typeof assessmentType)} className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900">
-              <option value="quiz">Quiz</option>
-              <option value="assignment">Assignment</option>
-              <option value="midterm">Midterm</option>
-              <option value="final">Final Exam</option>
-            </select>
+
+          {/* Grid */}
+          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm animate-fade-up">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    <th className="text-left py-4 px-6 w-10">#</th>
+                    <th className="text-left py-4 px-6">Student</th>
+                    <th className="text-left py-4 px-6 w-32">Score</th>
+                    <th className="text-left py-4 px-6">Status</th>
+                    <th className="text-left py-4 px-6 hidden sm:table-cell">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {students.map((student, i) => {
+                    const val = scores[student.id] ?? "";
+                    const isSaved = saved[student.id];
+                    const score = Number(val);
+                    const percent = val !== "" ? (score / maxScore) * 100 : null;
+                    const gradeInfo = percent !== null ? getEthiopianGrade(percent) : null;
+
+                    let statusBadge = null;
+                    if (percent !== null) {
+                      if (percent >= 80) statusBadge = <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest bg-emerald-100 text-emerald-700">EXCELLENT</span>;
+                      else if (percent >= 60) statusBadge = <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest bg-blue-100 text-blue-700">SATISFACTORY</span>;
+                      else statusBadge = <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest bg-red-100 text-red-700">NEEDS WORK</span>;
+                    }
+
+                    return (
+                      <tr key={student.id} className="hover:bg-slate-50 transition-colors group">
+                        <td className="py-3 px-6 text-xs font-bold text-slate-400">{i + 1}</td>
+                        <td className="py-3 px-6">
+                          <div className="font-bold text-slate-900">{student.first_name} {student.last_name}</div>
+                          <div className="text-xs font-mono text-slate-400">{student.roll_number}</div>
+                        </td>
+                        <td className="py-3 px-6">
+                          <div className="relative">
+                            <input
+                              type="number" min={0} max={maxScore} value={val}
+                              onChange={(e) => handleScoreChange(student.id, e.target.value)}
+                              className={`w-full font-bold text-lg py-2 px-3 rounded-xl border-2 outline-none transition-all ${
+                                isSaved ? "border-green-200 bg-green-50 text-green-700" :
+                                val !== "" ? "border-yellow-300 bg-yellow-50 text-slate-900 shadow-[0_0_15px_rgba(253,224,71,0.3)]" :
+                                "border-slate-100 text-slate-900 bg-slate-50 group-hover:border-slate-300"
+                              } focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10`}
+                            />
+                            {gradeInfo && <div className={`absolute -right-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-sm ${gradeInfo.color}`}>{gradeInfo.grade}</div>}
+                          </div>
+                        </td>
+                        <td className="py-3 px-6">{statusBadge}</td>
+                        <td className="py-3 px-6 hidden sm:table-cell">
+                          <input
+                            type="text" placeholder="Add note..." value={remarks[student.id] || ""}
+                            onChange={(e) => handleRemarkChange(student.id, e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-transparent text-xs font-medium outline-none focus:border-blue-400 focus:bg-white"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {students.length === 0 && (
+                <div className="py-16 text-center text-slate-400">
+                  <ClipboardList className="w-12 h-12 mx-auto mb-3 text-slate-200" />
+                  <p className="text-sm font-medium">Select a subject to see students</p>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="w-24">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-            <input type="number" min={1} value={maxScore} onChange={(e) => setMaxScore(Number(e.target.value) || 100)} className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900" />
-          </div>
-          <div className="flex items-end gap-2">
-            <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-xl text-xs font-bold">
-              {enteredCount}/{students.length} entered • Avg: {avgScore}%
+        </div>
+
+        <div className="space-y-6">
+          {/* Submit Button */}
+          {students.length > 0 && (
+            <button
+              onClick={handleSubmit}
+              disabled={submitted || enteredCount === 0}
+              className={`w-full py-4 rounded-3xl font-black tracking-wide text-sm transition-all flex items-center justify-center gap-2 ${
+                submitted ? "bg-green-100 text-green-700 border border-green-200" :
+                enteredCount === 0 ? "bg-slate-100 text-slate-400 cursor-not-allowed" :
+                "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1"
+              }`}
+            >
+              {submitted ? <><CheckCircle2 size={18} /> SAVED</> : <><Save size={18} /> SAVE MARKS</>}
+            </button>
+          )}
+
+          {/* Grade Distribution */}
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm sticky top-24">
+            <h3 className="font-extrabold text-slate-900 mb-6 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-purple-500"/> Distribution</h3>
+            <div className="space-y-4">
+              {[
+                { g: 'A', c: dist.A, col: 'bg-green-500' },
+                { g: 'B', c: dist.B, col: 'bg-blue-500' },
+                { g: 'C', c: dist.C, col: 'bg-yellow-500' },
+                { g: 'D', c: dist.D, col: 'bg-orange-500' },
+                { g: 'F', c: dist.F, col: 'bg-red-500' }
+              ].map(item => (
+                <div key={item.g} className="flex items-center gap-3">
+                  <div className="w-6 font-black text-slate-600">{item.g}</div>
+                  <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${item.col} transition-all duration-1000`} style={{ width: `${(item.c/maxDist)*100}%` }}></div>
+                  </div>
+                  <div className="w-6 text-right font-bold text-slate-400 text-sm">{item.c}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Mark Entry Grid */}
-      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs">
-                <th className="text-left py-3 px-4 w-10">#</th>
-                <th className="text-left py-3 px-4">Student Name</th>
-                <th className="text-left py-3 px-4 w-20 hidden sm:table-cell">Roll #</th>
-                <th className="text-center py-3 px-4 w-32">
-                  Score <span className="text-gray-400">(0-{maxScore})</span>
-                </th>
-                <th className="text-left py-3 px-4 w-48 hidden md:table-cell">Remarks</th>
-                <th className="text-center py-3 px-4 w-20">Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student, i) => {
-                const val = scores[student.id] ?? "";
-                const isSaved = saved[student.id];
-                const score = Number(val);
-
-                return (
-                  <tr key={student.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-2 px-4 text-xs text-gray-400">{i + 1}</td>
-                    <td className="py-2 px-4 font-medium text-gray-900 text-sm">{student.first_name} {student.last_name}</td>
-                    <td className="py-2 px-4 text-xs text-gray-400 font-mono hidden sm:table-cell">{student.roll_number.split("/").pop()}</td>
-                    <td className="py-2 px-3">
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={val}
-                        onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                        className={`w-full text-center py-1.5 px-2 rounded-lg border text-sm outline-none transition-all ${
-                          isSaved
-                            ? "border-green-300 bg-green-50 text-green-700"
-                            : val !== ""
-                            ? "border-yellow-300 bg-yellow-50 text-gray-900"
-                            : "border-gray-200 text-gray-900"
-                        } focus:border-blue-400 focus:ring-1 focus:ring-blue-400`}
-                      />
-                    </td>
-                    <td className="py-2 px-3 hidden md:table-cell">
-                      <input
-                        type="text"
-                        placeholder="Optional note..."
-                        value={remarks[student.id] || ""}
-                        onChange={(e) => handleRemarkChange(student.id, e.target.value)}
-                        className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className={`py-2 px-4 text-center font-bold text-sm ${val !== "" ? getEthiopianGrade((score / maxScore) * 100).color : ""}`}>
-                      {val !== "" ? getEthiopianGrade((score / maxScore) * 100).grade : ""}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Submit */}
-      {students.length > 0 && (
-        <button
-          onClick={handleSubmit}
-          disabled={submitted || enteredCount === 0}
-          className={`w-full py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
-            submitted
-              ? "bg-green-100 text-green-700 border border-green-200"
-              : enteredCount === 0
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
-        >
-          {submitted ? (
-            <><CheckCircle2 size={18} /> Marks Saved Successfully</>
-          ) : (
-            <><Save size={18} /> Save {enteredCount} Marks</>
-          )}
-        </button>
-      )}
     </div>
   );
 }
@@ -512,114 +691,211 @@ function ViewStudents() {
   const teacherId = currentUser?.ref_id || "";
   const mySubjects = getSubjectsByTeacher(teacherId);
   const [selectedSubject, setSelectedSubject] = useState(mySubjects[0]?.id || "");
+  const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"grid"|"list">("list");
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   const teacher = state.teachers.find((t) => t.id === teacherId);
   const students = teacher
     ? state.students.filter((s) => s.grade === teacher.assigned_grade && s.section === teacher.assigned_section).sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
+  const filteredStudents = students.filter(s => 
+    s.first_name.toLowerCase().includes(search.toLowerCase()) || 
+    s.last_name.toLowerCase().includes(search.toLowerCase()) ||
+    s.roll_number.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full sm:w-auto px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900">
-          {mySubjects.map((s) => <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>)}
-        </select>
+    <div className="space-y-6">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Students</div>
+          <div className="text-2xl font-black text-slate-900">{students.length}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Male</div>
+          <div className="text-2xl font-black text-blue-600">{students.filter(s=>s.gender==='Male').length}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Female</div>
+          <div className="text-2xl font-black text-pink-600">{students.filter(s=>s.gender==='Female').length}</div>
+        </div>
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Grade/Section</div>
+          <div className="text-2xl font-black text-indigo-600">{teacher?.assigned_grade}{teacher?.assigned_section}</div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs">
-                <th className="text-left py-3 px-4">#</th>
-                <th className="text-left py-3 px-4">Name</th>
-                <th className="text-left py-3 px-4">Roll #</th>
-                <th className="text-left py-3 px-4 hidden sm:table-cell">Gender</th>
-                <th className="text-left py-3 px-4 hidden md:table-cell">Parent Phone</th>
-                <th className="text-center py-3 px-4">Avg Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student, i) => {
-                const marks = state.marks.filter((m) => m.student_id === student.id && m.subject_id === selectedSubject);
-                const avg = marks.length > 0 ? Math.round(marks.reduce((sum, m) => sum + m.score, 0) / marks.length) : 0;
-                return (
-                  <tr key={student.id} className="border-t border-gray-50 hover:bg-gray-50">
-                    <td className="py-2.5 px-4 text-gray-400">{i + 1}</td>
-                    <td className="py-2.5 px-4 font-medium text-gray-900">{student.first_name} {student.last_name}</td>
-                    <td className="py-2.5 px-4 text-gray-500 font-mono text-xs">{student.roll_number}</td>
-                    <td className="py-2.5 px-4 hidden sm:table-cell">
-                      <span className={`px-2 py-0.5 rounded text-xs ${student.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>{student.gender}</span>
-                    </td>
-                    <td className="py-2.5 px-4 text-gray-500 text-xs hidden md:table-cell">{student.parent_phone}</td>
-                    <td className="py-2.5 px-4 text-center">
-                      <span className={`font-bold text-sm ${avg >= 70 ? "text-green-600" : avg >= 50 ? "text-yellow-600" : "text-red-600"}`}>
-                        {marks.length > 0 ? `${avg}%` : "—"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-4 py-3 bg-gray-50 text-xs text-gray-500 border-t border-gray-100">
-          {students.length} students enrolled
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+        <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full sm:w-64 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+          {mySubjects.map((s) => <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>)}
+        </select>
+        
+        <div className="flex w-full sm:w-auto items-center gap-3">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" placeholder="Search students..." 
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+            />
+          </div>
+          <div className="flex items-center bg-slate-100 rounded-xl p-1 shrink-0">
+            <button onClick={() => setViewMode("list")} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+              <ListIcon className="w-4 h-4" />
+            </button>
+            <button onClick={() => setViewMode("grid")} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {viewMode === 'list' ? (
+        <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
+                  <th className="text-left py-4 px-6">Name</th>
+                  <th className="text-left py-4 px-6">Roll #</th>
+                  <th className="text-left py-4 px-6 hidden sm:table-cell">Gender</th>
+                  <th className="text-center py-4 px-6">Avg Score</th>
+                  <th className="text-right py-4 px-6">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredStudents.map((student) => {
+                  const marks = state.marks.filter((m) => m.student_id === student.id && m.subject_id === selectedSubject);
+                  const avg = marks.length > 0 ? Math.round(marks.reduce((sum, m) => sum + (m.score/(m.max_score||100))*100, 0) / marks.length) : 0;
+                  const grade = getEthiopianGrade(avg);
+                  return (
+                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-600">
+                             {student.first_name[0]}{student.last_name[0]}
+                           </div>
+                           <span className="font-bold text-slate-900">{student.first_name} {student.last_name}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 font-mono text-slate-500 text-xs">{student.roll_number}</td>
+                      <td className="py-4 px-6 hidden sm:table-cell">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${student.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>{student.gender}</span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                         {marks.length > 0 ? (
+                           <div className="inline-flex items-center gap-2">
+                             <span className="font-bold text-slate-900">{avg}%</span>
+                             <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${grade.color}`}>{grade.grade}</span>
+                           </div>
+                         ) : <span className="text-slate-300 font-bold">—</span>}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button onClick={() => setSelectedStudent(student)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">
+                          View Profile
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredStudents.map((student) => {
+             const marks = state.marks.filter((m) => m.student_id === student.id && m.subject_id === selectedSubject);
+             const avg = marks.length > 0 ? Math.round(marks.reduce((sum, m) => sum + (m.score/(m.max_score||100))*100, 0) / marks.length) : 0;
+             const grade = getEthiopianGrade(avg);
+             return (
+              <div key={student.id} onClick={() => setSelectedStudent(student)} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-black text-slate-500 text-lg shadow-inner">
+                      {student.first_name[0]}{student.last_name[0]}
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${student.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>{student.gender}</span>
+                 </div>
+                 <h4 className="font-extrabold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{student.first_name}</h4>
+                 <div className="font-bold text-slate-500 text-sm mb-4">{student.last_name}</div>
+                 <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                    <div className="text-xs font-mono text-slate-400">{student.roll_number}</div>
+                    {marks.length > 0 ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-slate-900">{avg}%</span>
+                        <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${grade.color}`}>{grade.grade}</span>
+                      </div>
+                    ) : <span className="text-xs font-bold text-slate-300">No marks</span>}
+                 </div>
+              </div>
+             )
+          })}
+        </div>
+      )}
+
+      {/* Student Detail Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSelectedStudent(null)}>
+          <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
+            <div className="h-32 bg-gradient-to-r from-blue-500 to-indigo-600 relative">
+               <button onClick={() => setSelectedStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-colors"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="px-8 pb-8">
+               <div className="-mt-12 flex justify-between items-end mb-6">
+                 <div className="w-24 h-24 rounded-3xl bg-white p-1.5 shadow-lg">
+                    <div className="w-full h-full rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl font-black text-slate-400">
+                      {selectedStudent.first_name[0]}{selectedStudent.last_name[0]}
+                    </div>
+                 </div>
+                 <div className="flex gap-2">
+                   <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"><MapPin className="w-4 h-4"/> View Address</button>
+                   <button className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"><Phone className="w-4 h-4"/> Contact Parent</button>
+                 </div>
+               </div>
+               
+               <h2 className="text-3xl font-black text-slate-900 mb-1">{selectedStudent.first_name} {selectedStudent.middle_name} {selectedStudent.last_name}</h2>
+               <div className="flex items-center gap-3 text-sm font-bold text-slate-500 mb-8">
+                 <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">Grade {selectedStudent.grade}{selectedStudent.section}</span>
+                 <span>•</span>
+                 <span className="font-mono">{selectedStudent.roll_number}</span>
+                 <span>•</span>
+                 <span>{selectedStudent.gender}</span>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4 mb-8">
+                 <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Parent/Guardian</div>
+                    <div className="font-bold text-slate-900">{selectedStudent.guardian_name} <span className="text-slate-400 font-medium">({selectedStudent.guardian_relation})</span></div>
+                    <div className="text-sm text-slate-500 mt-1">{selectedStudent.parent_phone}</div>
+                 </div>
+                 <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Previous School</div>
+                    <div className="font-bold text-slate-900">{selectedStudent.previous_school || 'N/A'}</div>
+                    <div className="text-sm text-slate-500 mt-1">Grade 8 GPA: {selectedStudent.grade_8_gpa}</div>
+                 </div>
+               </div>
+
+               <div className="flex gap-3">
+                 <button className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-colors">Full Academic Record</button>
+                 <button className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Attendance History</button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ============================================================
-// ENROLL STUDENT (Teacher submits enrollment request)
+// ENROLL STUDENT
 // ============================================================
 function EnrollStudent() {
-  const { currentUser, state } = useApp();
-  const { addToast } = useToast();
-  const teacher = state.teachers.find((t) => t.id === currentUser?.ref_id);
-
-  const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    age: 15,
-    gender: "Male" as "Male" | "Female",
-    grade: teacher?.assigned_grade || "9",
-    section: teacher?.assigned_section || "A",
-    roll_number: "",
-    parent_phone: "",
-    address: "",
-    personal_email: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await api.createStudent({ ...form, enrolled_date: new Date().toISOString().split("T")[0] });
-      setSubmitted(`${form.first_name} ${form.last_name}`);
-      setForm({ first_name: "", last_name: "", age: 15, gender: "Male", grade: teacher?.assigned_grade || "9", section: teacher?.assigned_section || "A", roll_number: "", parent_phone: "", address: "", personal_email: "" });
-      addToast({ type: "success", title: "Enrollment Submitted", message: "The admin will review and issue credentials." });
-    } catch (err: unknown) {
-      addToast({ type: "error", title: "Error", message: err instanceof Error ? err.message : "Enrollment failed" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-
-  const inputCls = "w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 transition-all";
-
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden animate-fade-scale group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 transition-transform duration-700 group-hover:scale-110"></div>
         <div className="relative z-10">
@@ -627,102 +903,14 @@ function EnrollStudent() {
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm group-hover:rotate-12 transition-transform">
               <UserPlus size={28} />
             </div>
-            <h2 className="text-2xl font-black">Enroll New Student</h2>
+            <h2 className="text-2xl font-black">Student Registration</h2>
           </div>
           <p className="text-blue-100 text-sm font-medium leading-relaxed max-w-xl">
-            Fill in the student's details collected during registration. The enrollment will be sent to the admin for approval. Credentials will be emailed to the student's Gmail.
+            Register new students for the academic year. As a Home Room teacher, you have full authority to activate students and issue their credentials immediately.
           </p>
         </div>
       </div>
-
-      {submitted && (
-        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-2xl animate-fade-in">
-          <CheckCircle2 className="text-green-500" size={20} />
-          <p className="text-green-800 font-semibold text-sm">
-            <span className="notranslate">{submitted}</span> has been submitted for admin approval!
-          </p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 p-8 space-y-6 shadow-sm hover:shadow-md transition-all animate-fade-up">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="First Name">
-            <input required value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} className={inputCls} placeholder="e.g. Mekdes" />
-          </Field>
-          <Field label="Last Name">
-            <input required value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} className={inputCls} placeholder="e.g. Tsegaye" />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <Field label="Age">
-            <input required type="number" min={10} max={25} value={form.age} onChange={e => setForm({...form, age: Number(e.target.value)})} className={inputCls} />
-          </Field>
-          <Field label="Gender">
-            <select value={form.gender} onChange={e => setForm({...form, gender: e.target.value as "Male"|"Female"})} className={inputCls}>
-              <option>Male</option>
-              <option>Female</option>
-            </select>
-          </Field>
-          <Field label="Roll No.">
-            <input required value={form.roll_number} onChange={e => setForm({...form, roll_number: e.target.value})} className={inputCls} placeholder="e.g. 001" />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Grade">
-            <select value={form.grade} onChange={e => setForm({...form, grade: e.target.value})} className={inputCls}>
-              {["9","10","11","12"].map(g => <option key={g}>{g}</option>)}
-            </select>
-          </Field>
-          <Field label="Section">
-            <select value={form.section} onChange={e => setForm({...form, section: e.target.value})} className={inputCls}>
-              {["A","B","C","D"].map(s => <option key={s}>{s}</option>)}
-            </select>
-          </Field>
-        </div>
-
-        <Field label="Parent / Guardian Phone">
-          <input required value={form.parent_phone} onChange={e => setForm({...form, parent_phone: e.target.value})} className={inputCls} placeholder="+251 91 000 0000" />
-        </Field>
-
-        <Field label="Home Address">
-          <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className={inputCls} placeholder="Kebele, Woreda, City" />
-        </Field>
-
-        <div className="relative">
-          <Field label="Student's Personal Email (Gmail) — for credential delivery">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                <Mail size={16} />
-              </div>
-              <input
-                required
-                type="email"
-                value={form.personal_email}
-                onChange={e => setForm({...form, personal_email: e.target.value})}
-                className={`${inputCls} pl-10`}
-                placeholder="student@gmail.com"
-              />
-            </div>
-          </Field>
-          <p className="mt-1.5 text-xs text-amber-600 font-medium">⚠️ The admin will send login credentials to this exact email address. Verify it carefully.</p>
-        </div>
-
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-60"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <><Send size={16} /> Submit Enrollment Request</>
-            )}
-          </button>
-        </div>
-      </form>
+      <StudentRegistrationForm />
     </div>
   );
 }
@@ -736,7 +924,7 @@ export default function TeacherPortal({ activePage }: { activePage: string }) {
     case "attendance": return <TakeAttendance />;
     case "marks": return <EnterMarks />;
     case "students": return <ViewStudents />;
-    case "enroll": return <EnrollStudent />;
+    case "register": return <EnrollStudent />;
     case "profile": return <ProfilePage />;
     default: return <TeacherDashboard />;
   }

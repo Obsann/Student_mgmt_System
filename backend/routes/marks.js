@@ -47,10 +47,30 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
   try {
     const { studentId, subjectId, academicYear, semester, assessmentType, score, maxScore, remarks } = req.body;
 
-    // Manual validation (pre-save hooks don't fire on findOneAndUpdate)
-    const effectiveMaxScore = maxScore || 100;
+    const effectiveMaxScore = maxScore ? Math.min(Number(maxScore), 100) : 100;
     if (score < 0 || score > effectiveMaxScore) {
       return res.status(400).json({ message: `Score (${score}) must be between 0 and ${effectiveMaxScore}` });
+    }
+
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const Student = require("../models/Student");
+      const Subject = require("../models/Subject");
+
+      const teacher = await Teacher.findById(req.user.refId);
+      const student = await Student.findById(studentId);
+      const subject = await Subject.findById(subjectId);
+
+      if (!teacher || !student || !subject) {
+        return res.status(404).json({ message: "Invalid references provided" });
+      }
+
+      const isSubjectTeacher = subject.teacherId.toString() === teacher._id.toString();
+      const isHomeroomTeacher = student.grade === teacher.assignedGrade && student.section === teacher.assignedSection;
+
+      if (!isSubjectTeacher && !isHomeroomTeacher) {
+        return res.status(403).json({ message: "Access denied. You are not authorized to enter marks for this student/subject." });
+      }
     }
 
     // Use findOneAndUpdate with upsert to either create new or update existing mark

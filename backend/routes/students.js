@@ -82,55 +82,110 @@ router.get("/:id", protect, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/students — create (admin = active+credentials, teacher = pending)
+// POST /api/students — create (Registrar/Admin only)
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
+router.post("/", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
   try {
     const isAdmin = req.user.role === "admin";
+    const isRegistrar = req.user.role === "registrar";
+    const isTeacher = req.user.role === "teacher";
 
-    // Determine status based on role
+    // Teachers can request enrollment, but only Registrars/Admins have "write" authority for full records
+    if (isTeacher && req.body.faydaId) {
+       // Optional: limit teachers to simpler requests if desired
+    }
+
+    // 1. Uniqueness Checks
+    const { faydaId, nationalExamNumber } = req.body;
+    
+    // If teacher, force their assigned grade/section
+    if (isTeacher) {
+      const Teacher = require("../models/Teacher");
+      const teacher = await Teacher.findById(req.user.refId);
+      if (teacher) {
+        req.body.grade = teacher.assignedGrade;
+        req.body.section = teacher.assignedSection;
+      }
+    }
+    
+    if (faydaId) {
+      const existingFayda = await Student.findOne({ faydaId });
+      if (existingFayda) return res.status(400).json({ message: "Fayda ID already exists." });
+    }
+
+    if (nationalExamNumber) {
+      const existingExam = await Student.findOne({ nationalExamNumber });
+      if (existingExam) return res.status(400).json({ message: "National Exam Number already exists." });
+    }
+
+    // Determine status based on role (Teacher now acts as Registrar)
+    const canActivate = isAdmin || isRegistrar || isTeacher;
+
     const studentData = {
       ...req.body,
-      status: isAdmin ? "active" : "pending",
+      status: canActivate ? "active" : "pending",
       addedBy: req.user._id,
     };
 
     const student = await Student.create(studentData);
 
-    // If admin creates directly → also create user account with generated password
-    if (isAdmin) {
+    // If admin/registrar/teacher creates directly → also create user account and send email
+    if (canActivate) {
       const username = generateUsername(req.body.firstName, req.body.lastName, student._id.toString().slice(-3));
       const password = generatePassword();
-      await User.create({
-        username,
-        password,
-        role: "student",
-        name: `${req.body.firstName} ${req.body.lastName}`,
-        email: req.body.personalEmail || `${username}@keraschool.et`,
-        refId: student._id,
-      });
+      const email = req.body.personalEmail || `${username}@keraschool.et`;
+
+      try {
+        await User.create({
+          username,
+          password,
+          role: "student",
+          name: `${req.body.firstName} ${req.body.lastName}`,
+          email,
+          refId: student._id,
+        });
+
+        // Send the email
+        await sendCredentialsEmail({
+          to: email,
+          studentName: `${req.body.firstName} ${req.body.lastName}`,
+          username,
+          password,
+          grade: student.grade,
+          section: student.section,
+        });
+      } catch (userErr) {
+        if (userErr.code === 11000) {
+          // If user creation fails, we still created the student record, but no account.
+          // We should probably delete the student record or inform the user.
+          await Student.findByIdAndDelete(student._id);
+          return res.status(400).json({ message: "A user with this email already exists." });
+        }
+        throw userErr;
+      }
     }
 
     await AuditLog.create({
       userId: req.user._id,
       userName: req.user.name,
-      action: isAdmin ? "CREATE" : "ENROLL_REQUEST",
+      action: canActivate ? "CREATE" : "ENROLL_REQUEST",
       entity: "Student",
       entityId: student._id.toString(),
-      details: `${isAdmin ? "Created" : "Enrollment requested for"} student ${req.body.firstName} ${req.body.lastName}`,
+      details: `${canActivate ? "Created" : "Enrollment requested for"} student ${req.body.firstName} ${req.body.lastName}`,
       ipAddress: req.ip,
     });
 
     res.status(201).json(student);
   } catch (err) {
-    res.status(400).json({ message: "Validation error" });
+    console.error(err);
+    res.status(400).json({ message: err.message || "Validation error" });
   }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/students/:id/issue-credentials — Admin approves + emails credentials
+// POST /api/students/:id/issue-credentials — Admin/Teacher approves + emails credentials
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/:id/issue-credentials", protect, authorize("admin"), async (req, res) => {
+router.post("/:id/issue-credentials", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -244,10 +299,26 @@ router.post("/bulk", protect, authorize("admin"), async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/students/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.put("/:id", protect, authorize("admin"), async (req, res) => {
+router.put("/:id", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
   try {
-    // Whitelist allowed fields — prevent overwriting status, addedBy, etc.
-    const allowed = ["firstName", "lastName", "age", "gender", "grade", "section", "rollNumber", "parentPhone", "address", "personalEmail"];
+    const studentToUpdate = await Student.findById(req.params.id);
+    if (!studentToUpdate) return res.status(404).json({ message: "Student not found" });
+
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const teacher = await Teacher.findById(req.user.refId);
+      if (!teacher || studentToUpdate.grade !== teacher.assignedGrade || studentToUpdate.section !== teacher.assignedSection) {
+        return res.status(403).json({ message: "Access denied. Student is not in your assigned class." });
+      }
+    }
+
+    // Whitelist allowed fields
+    const allowed = [
+      "firstName", "middleName", "lastName", "dateOfBirth", "gender", 
+      "faydaId", "grade8GPA", "previousSchool", "nationalExamNumber",
+      "address", "guardianName", "guardianRelation", "parentPhone", 
+      "personalEmail", "grade", "section", "rollNumber", "status"
+    ];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -275,8 +346,19 @@ router.put("/:id", protect, authorize("admin"), async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/students/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.delete("/:id", protect, authorize("admin"), async (req, res) => {
+router.delete("/:id", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
   try {
+    const studentToDelete = await Student.findById(req.params.id);
+    if (!studentToDelete) return res.status(404).json({ message: "Student not found" });
+
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const teacher = await Teacher.findById(req.user.refId);
+      if (!teacher || studentToDelete.grade !== teacher.assignedGrade || studentToDelete.section !== teacher.assignedSection) {
+        return res.status(403).json({ message: "Access denied. Student is not in your assigned class." });
+      }
+    }
+
     const student = await Student.findByIdAndDelete(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
 

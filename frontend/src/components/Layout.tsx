@@ -7,6 +7,8 @@ import {
   X,
   ChevronDown,
   Bell,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 
@@ -18,29 +20,47 @@ interface NavItem {
 }
 
 interface LayoutProps {
-
   navItems: NavItem[];
   roleLabel: string;
   roleColor?: string;
 }
 
 // ─── Avatar Component ────────────────────────────────────────────────────────
-function Avatar({ name, size = 'md', className = '' }: { name?: string; size?: 'sm' | 'md' | 'lg'; className?: string; }) {
+function Avatar({ name, src, size = 'md', className = '' }: { name?: string; src?: string; size?: 'sm' | 'md' | 'lg'; className?: string; }) {
   const sizeClasses = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base' };
   const initials = name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '?';
 
   return (
-    <div className={`${sizeClasses[size]} rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-extrabold shadow-sm ${className}`}>
-      {initials}
+    <div className={`${sizeClasses[size]} rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-extrabold shadow-sm overflow-hidden shrink-0 ${className}`}>
+      {src ? (
+        <img src={src} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
 
-export default function Layout({ navItems, roleLabel }: LayoutProps) {
+export default function Layout({ navItems, roleLabel, roleColor = "indigo" }: LayoutProps) {
+  const colorMap: Record<string, string> = {
+    red: "from-red-500 to-rose-600 shadow-red-200 text-red-600 bg-red-50 border-red-100",
+    blue: "from-blue-500 to-indigo-600 shadow-blue-200 text-blue-600 bg-blue-50 border-blue-100",
+    green: "from-green-500 to-emerald-600 shadow-emerald-200 text-green-600 bg-green-50 border-green-100",
+    purple: "from-purple-500 to-indigo-600 shadow-purple-200 text-purple-600 bg-purple-50 border-purple-100",
+    indigo: "from-indigo-500 to-blue-600 shadow-indigo-200 text-indigo-600 bg-indigo-50 border-indigo-100",
+  };
+
+  const activeColor = colorMap[roleColor] || colorMap.indigo;
+  const gradientClass = activeColor.split(" ").slice(0, 2).join(" ");
+  const textClass = activeColor.split(" ")[3];
+  const bgClass = activeColor.split(" ")[4];
+  const borderClass = activeColor.split(" ")[5];
+
   const { currentUser, logout } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -71,40 +91,47 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
       )}
 
       {/* Sidebar - Clean Modern Theme */}
-      <aside className={`fixed top-0 left-0 h-full w-72 bg-white z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 border-r border-slate-100`}>
-        <div className="p-6 h-full flex flex-col relative z-10">
+      <aside className={`fixed top-0 left-0 h-full bg-white z-50 transform transition-all duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'} ${isCollapsed ? 'lg:w-20' : 'lg:w-72'} lg:translate-x-0 border-r border-slate-100`}>
+        <div className="p-4 sm:p-6 h-full flex flex-col relative z-10 overflow-hidden">
           
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} mb-8 transition-all`}>
+            <div className={`w-10 h-10 shrink-0 bg-gradient-to-br ${gradientClass} rounded-xl flex items-center justify-center shadow-lg`}>
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-slate-900 font-extrabold text-xl leading-none tracking-tight notranslate">Kera</h1>
-              <p className="text-indigo-500 text-[10px] font-bold uppercase tracking-widest mt-0.5 notranslate">High School</p>
-            </div>
-            <button className="ml-auto lg:hidden text-slate-400 hover:text-slate-900 bg-slate-50 p-1.5 rounded-lg" onClick={() => setSidebarOpen(false)}>
+            {!isCollapsed && (
+              <div className="animate-fade-in whitespace-nowrap">
+                <h1 className="text-slate-900 font-extrabold text-xl leading-none tracking-tight notranslate">Kera</h1>
+                <p className={`${textClass} text-[10px] font-bold uppercase tracking-widest mt-0.5 notranslate`}>High School</p>
+              </div>
+            )}
+            <button className="ml-auto lg:hidden text-slate-400 hover:text-slate-900 bg-slate-50 p-1.5 rounded-lg shrink-0" onClick={() => setSidebarOpen(false)}>
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* User info card */}
-          <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
+          <div className={`bg-slate-50 rounded-2xl ${isCollapsed ? 'p-2 flex justify-center' : 'p-4'} mb-6 border border-slate-100 transition-all`}>
             <div className="flex items-center gap-3">
-              <Avatar name={currentUser?.name} size="md" className="shadow-md shadow-indigo-200" />
-              <div className="flex-1 min-w-0">
-                <p className="text-slate-900 font-extrabold text-sm truncate notranslate">{currentUser?.name}</p>
-                <span className="inline-block mt-0.5 text-xs text-slate-500 font-semibold capitalize">
-                  {roleLabel} Portal
-                </span>
+              <div className="relative">
+                <Avatar name={currentUser?.name} src={currentUser?.avatar} size="md" className="shadow-md shadow-indigo-200" />
+                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
               </div>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0 animate-fade-in whitespace-nowrap">
+                  <p className="text-slate-900 font-extrabold text-sm truncate notranslate">{currentUser?.name}</p>
+                  <span className={`inline-block mt-0.5 text-[10px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest ${bgClass} ${textClass} border ${borderClass}`}>
+                    {roleLabel}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 px-2">Menu</div>
+          {!isCollapsed && <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 px-2">Menu</div>}
 
           {/* Nav Items */}
-          <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
+          <nav className={`flex-1 space-y-1.5 overflow-y-auto ${isCollapsed ? 'px-0' : 'pr-2'} custom-scrollbar`}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path || (location.pathname === '/' && item.path === '/dashboard');
               return (
@@ -112,34 +139,40 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
                   key={item.id}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200 ${
+                  title={isCollapsed ? item.label : undefined}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'} rounded-2xl text-sm font-bold transition-all duration-200 ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                      : 'text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'
+                      ? `bg-gradient-to-br ${gradientClass} text-white shadow-md shadow-indigo-200`
+                      : `text-slate-500 hover:${bgClass} hover:${textClass}`
                   }`}
                 >
-                  {item.icon}
-                  {item.label}
+                  <div className="shrink-0">{item.icon}</div>
+                  {!isCollapsed && <span className="whitespace-nowrap animate-fade-in">{item.label}</span>}
                 </Link>
               )
             })}
           </nav>
 
-          {/* Bottom actions */}
-          <div className="pt-6 mt-6 border-t border-slate-100">
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all text-sm font-bold"
+          <div className="pt-4 mt-4 border-t border-slate-100 flex flex-col gap-4">
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)} 
+              className={`hidden lg:flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} w-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors`}
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
-              <LogOut className="w-5 h-5" />
-              Sign Out
+              {isCollapsed ? <PanelLeftOpen className="w-5 h-5"/> : <PanelLeftClose className="w-5 h-5"/>}
+              {!isCollapsed && <span className="text-xs font-bold whitespace-nowrap">Collapse Menu</span>}
             </button>
+            {!isCollapsed && (
+              <div className="text-center animate-fade-in">
+                <p className="text-xs text-slate-400 font-medium">Powered by OBN</p>
+              </div>
+            )}
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-72 flex flex-col min-h-screen">
+      <div className={`flex-1 transition-all duration-300 flex flex-col min-h-screen ${isCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-slate-100">
           <div className="flex items-center justify-between px-4 lg:px-8 h-16 max-w-7xl mx-auto w-full">
@@ -195,7 +228,7 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
                   }}
                   className="flex items-center gap-3 p-1.5 pr-3 rounded-full hover:bg-slate-50 transition-colors"
                 >
-                  <Avatar name={currentUser?.name} size="sm" />
+                  <Avatar name={currentUser?.name} src={currentUser?.avatar} size="sm" />
                   <div className="text-left hidden sm:block">
                     <div className="text-sm font-extrabold text-slate-900 leading-none">{currentUser?.name}</div>
                   </div>
@@ -209,10 +242,10 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
                     </div>
                     <div className="p-2">
                       <button
-                        onClick={() => {
-                          navigate("/profile");
-                          setShowUserMenu(false);
-                        }}
+                         onClick={() => {
+                           navigate("/profile");
+                           setShowUserMenu(false);
+                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-2xl transition-colors font-bold"
                       >
                         <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-600"><GraduationCap className="w-4 h-4" /></div>
@@ -235,11 +268,18 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 md:p-6 lg:p-8 flex-1 animate-fade-in">
+        <main className="p-4 md:p-6 lg:p-8 flex-1 animate-fade-in pb-16">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>
+        
+        {/* Footer Status Bar */}
+        <div className={`h-10 bg-white border-t border-slate-200 text-[10px] sm:text-xs flex items-center px-4 sm:px-8 text-slate-400 font-mono justify-between fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'}`}>
+          <div className="hidden sm:block">KERA HIGH SCHOOL • JIMMA • 2025</div>
+          <div className="font-bold text-slate-500">{roleLabel.toUpperCase()} PORTAL v4.2.1</div>
+          <div>ETHIOPIAN MINISTRY OF EDUCATION</div>
+        </div>
       </div>
     </div>
   );

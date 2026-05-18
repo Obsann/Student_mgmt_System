@@ -9,6 +9,7 @@ const teacherSchema = new mongoose.Schema(
     subjects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Subject" }],
     assignedGrade: { type: String, required: true },
     assignedSection: { type: String, required: true },
+    avatar: { type: String, default: "" },
   },
   { timestamps: true }
 );

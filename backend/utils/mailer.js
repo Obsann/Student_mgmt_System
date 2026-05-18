@@ -1,24 +1,28 @@
 const nodemailer = require("nodemailer");
 
 /**
- * Creates a reusable transporter from env vars.
- * Set in .env:
- *   SMTP_HOST=smtp.gmail.com
- *   SMTP_PORT=587
- *   SMTP_USER=your-school-email@gmail.com
- *   SMTP_PASS=your-app-password
- *   SMTP_FROM="Kera High School <no-reply@keraschool.et>"
+ * Mailer Configuration
+ * Uses Gmail service for better compatibility with App Passwords.
  */
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// Verify connection configuration on startup
+if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ SMTP Connection Error:", error.message);
+    } else {
+      console.log("✅ Mail server is ready to send credentials!");
+    }
   });
+} else {
+  console.log("⚠️ Mailer running in DEV MODE (Logging to console only)");
 }
 
 /**
@@ -26,7 +30,6 @@ function createTransporter() {
  */
 async function sendCredentialsEmail({ to, studentName, username, password, grade, section }) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    // Dev mode: just log instead of crashing
     console.log(`\n[MAILER — DEV MODE] Credentials for ${studentName}:`);
     console.log(`  To:       ${to}`);
     console.log(`  Username: ${username}`);
@@ -34,8 +37,6 @@ async function sendCredentialsEmail({ to, studentName, username, password, grade
     console.log(`  Grade:    ${grade}${section}\n`);
     return;
   }
-
-  const transporter = createTransporter();
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM || `"Kera High School" <${process.env.SMTP_USER}>`,
@@ -100,7 +101,7 @@ async function sendCredentialsEmail({ to, studentName, username, password, grade
 }
 
 /**
- * Send password reset email (for forgot password flow).
+ * Send password reset email.
  */
 async function sendPasswordResetEmail({ to, name, token }) {
   const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${token}`;
@@ -112,7 +113,6 @@ async function sendPasswordResetEmail({ to, name, token }) {
     return;
   }
 
-  const transporter = createTransporter();
   await transporter.sendMail({
     from: process.env.SMTP_FROM || `"Kera High School" <${process.env.SMTP_USER}>`,
     to,

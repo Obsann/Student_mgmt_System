@@ -1,33 +1,52 @@
 import { useState } from "react";
-import { BookOpen, Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { BookOpen, Plus, Pencil, Search, X, Save } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import EmptyState from "../../components/EmptyState";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
-import Breadcrumb from "../../components/Breadcrumb";
 import FormField from "../../components/FormField";
-import Modal from "../../components/Modal";
-import SearchInput from "../../components/SearchInput";
 import type { Subject } from "../../types";
 
 export default function ManageSubjects() {
   const { state, addSubject, updateSubject, deleteSubject } = useApp();
   const [search, setSearch] = useState("");
+  const [selectedDept, setSelectedDept] = useState("All");
+  const [selectedGrade, setSelectedGrade] = useState("All");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; subject: Subject | null }>({ open: false, subject: null });
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", code: "", grade: "9", teacher_id: "" });
+  const [viewSubject, setViewSubject] = useState<Subject | null>(null);
+
+  const [form, setForm] = useState({ 
+    name: "", 
+    code: "", 
+    grade: "9", 
+    teacher_id: "",
+    department: "Natural Science",
+    periodsPerWeek: 4,
+    description: ""
+  });
+  
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const filtered = state.subjects.filter((s) =>
-    `${s.name} ${s.code}`.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtering
+  const filtered = state.subjects.filter((s) => {
+    const matchesSearch = `${s.name} ${s.code}`.toLowerCase().includes(search.toLowerCase());
+    const matchesDept = selectedDept === "All" || (s.department || "Natural Science") === selectedDept;
+    const matchesGrade = selectedGrade === "All" || s.grade === selectedGrade;
+    return matchesSearch && matchesDept && matchesGrade;
+  });
+
+  const departments = Array.from(new Set(state.subjects.map(s => s.department || "Natural Science")));
+
+  const totalPeriods = state.subjects.reduce((sum, s) => sum + (s.periodsPerWeek || 4), 0);
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!form.name.trim()) errors.name = "Subject name is required";
     if (!form.code.trim()) errors.code = "Subject code is required";
-    else if (!/^[A-Z]{2,6}$/.test(form.code)) errors.code = "Code should be 2-6 uppercase letters";
+    else if (!/^[A-Z0-9-]{2,10}$/.test(form.code)) errors.code = "Code should be uppercase letters/numbers";
     if (!form.teacher_id) errors.teacher_id = "Teacher assignment is required";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -35,14 +54,30 @@ export default function ManageSubjects() {
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", code: "", grade: "9", teacher_id: "" });
+    setForm({ 
+      name: "", 
+      code: "", 
+      grade: "9", 
+      teacher_id: "",
+      department: "Natural Science",
+      periodsPerWeek: 4,
+      description: ""
+    });
     setFormErrors({});
     setModalOpen(true);
   };
 
   const openEdit = (s: Subject) => {
     setEditId(s.id);
-    setForm({ name: s.name, code: s.code, grade: s.grade, teacher_id: s.teacher_id });
+    setForm({ 
+      name: s.name, 
+      code: s.code, 
+      grade: s.grade, 
+      teacher_id: s.teacher_id,
+      department: s.department || "Natural Science",
+      periodsPerWeek: s.periodsPerWeek || 4,
+      description: s.description || ""
+    });
     setFormErrors({});
     setModalOpen(true);
   };
@@ -70,74 +105,107 @@ export default function ManageSubjects() {
     }
   };
 
-  const breadcrumbs = [
-    { label: "Dashboard", href: "#dashboard" },
-    { label: "Subjects", current: true },
-  ];
-
-  if (state.subjects.length === 0) {
-    return (
-      <div className="space-y-6">
-        <Breadcrumb items={breadcrumbs} />
-        <EmptyState
-          icon={<BookOpen size={48} />}
-          title="No Subjects Yet"
-          description="Create subjects and assign them to teachers and grades."
-          action={
-            <button onClick={openAdd} className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30">
-              <Plus size={16} /> Add First Subject
-            </button>
-          }
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <Breadcrumb items={breadcrumbs} />
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1"><SearchInput value={search} onChange={setSearch} placeholder="Search subjects..." /></div>
-        <button onClick={openAdd} className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30">
-          <Plus size={16} /> Add Subject
-        </button>
+    <div className="space-y-6 animate-fade-in">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📚</div>
+          <p className="text-3xl font-black text-slate-900">{state.subjects.length}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Subjects</p>
+        </div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">✅</div>
+          <p className="text-3xl font-black text-slate-900">{state.subjects.length}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Active</p>
+        </div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🏢</div>
+          <p className="text-3xl font-black text-slate-900">{departments.length || 1}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Departments</p>
+        </div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">⏱️</div>
+          <p className="text-3xl font-black text-slate-900">{totalPeriods}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Weekly Periods</p>
+        </div>
       </div>
 
+      {/* Filters */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[240px]">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Search</label>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input type="text" placeholder="Search by name or code..." value={search} onChange={e => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Department</label>
+            <select value={selectedDept} onChange={e => setSelectedDept(e.target.value)}
+              className="block w-48 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
+              <option value="All">All Departments</option>
+              {departments.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Grade</label>
+            <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)}
+              className="block w-36 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
+              <option value="All">All</option><option value="9">Grade 9</option><option value="10">Grade 10</option><option value="11">Grade 11</option><option value="12">Grade 12</option>
+            </select>
+          </div>
+          <button onClick={openAdd} className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5 h-[46px]">
+            <Plus size={16} /> Add Subject
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Search size={48} />}
-          title="No Subjects Found"
-          description="Try adjusting your search criteria."
-        />
+        <EmptyState icon={<BookOpen size={48} />} title="No Subjects Found" description="Try adjusting your filter settings." />
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '0.2s' }}>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                  <th className="text-left py-3 px-4">Code</th>
-                  <th className="text-left py-3 px-4">Subject Name</th>
-                  <th className="text-left py-3 px-4">Grade</th>
-                  <th className="text-left py-3 px-4">Teacher</th>
-                  <th className="text-left py-3 px-4">Students</th>
-                  <th className="text-right py-3 px-4">Actions</th>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Code</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Teacher</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly Periods</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map((s) => {
-                  const teacher = state.teachers.find((t) => t.id === s.teacher_id);
-                  const enrolled = state.enrollments.filter((e) => e.subject_id === s.id).length;
+              <tbody className="divide-y divide-slate-50">
+                {filtered.map(subject => {
+                  const teacher = state.teachers.find((t) => t.id === subject.teacher_id);
                   return (
-                    <tr key={s.id} className="border-t border-slate-50 hover:bg-slate-50 transition-colors group">
-                      <td className="py-3 px-4"><span className="font-mono text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg font-bold">{s.code}</span></td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{s.name}</td>
-                      <td className="py-3 px-4 text-slate-600 font-medium">{s.grade}</td>
-                      <td className="py-3 px-4 text-slate-500 text-xs font-semibold">{teacher?.name || "Unassigned"}</td>
-                      <td className="py-3 px-4 text-slate-400 text-xs font-bold">{enrolled}</td>
-                      <td className="py-3 px-4 text-right">
-                        <button onClick={() => openEdit(s)} className="p-2 rounded-xl hover:bg-blue-50 text-blue-500 transition-colors"><Pencil size={14} /></button>
-                        <button onClick={() => handleDelete(s)} className="p-2 rounded-xl hover:bg-red-50 text-red-500 ml-1 transition-colors"><Trash2 size={14} /></button>
+                    <tr key={subject.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-6 py-4 font-mono text-sm font-bold text-indigo-600">{subject.code}</td>
+                      <td className="px-6 py-4 font-extrabold text-slate-900">{subject.name}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                          (subject.department || 'Natural Science') === 'Natural Science' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                        }`}>{subject.department || 'Natural Science'}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-600">Grade {subject.grade}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-600">{teacher?.name || 'Unassigned'}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="px-2.5 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-500">{subject.periodsPerWeek || 4} periods</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => setViewSubject(subject)} className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors">View</button>
+                          <button onClick={() => openEdit(subject)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">Edit</button>
+                          <button onClick={() => handleDelete(subject)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors">Del</button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -148,76 +216,112 @@ export default function ManageSubjects() {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editId ? "Edit Subject" : "Add New Subject"}>
-        <div className="space-y-4">
-          <FormField
-            label="Subject Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            error={formErrors.name}
-            helperText="e.g., Mathematics, English Language"
-            required
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <FormField
-              label="Code"
-              value={form.code}
-              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-              error={formErrors.code}
-              helperText="e.g., MATH, ENG"
-              required
-            />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Grade</label>
-              <select
-                value={form.grade}
-                onChange={(e) => setForm({ ...form, grade: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
-              >
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
+      {/* Add/Edit Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl animate-fade-scale flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50/50">
+              <h3 className="text-xl font-black text-slate-900">{editId ? "Edit Subject Record" : "Add New Subject"}</h3>
+              <p className="text-sm font-medium text-slate-500 mt-1">Fill in the subject details below</p>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+              <FormField label="Subject Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} error={formErrors.name} required />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} error={formErrors.code} helperText="e.g., MATH, ENG" required />
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Grade</label>
+                  <select value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition-all">
+                    <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Assigned Teacher</label>
+                <select value={form.teacher_id} onChange={(e) => setForm({ ...form, teacher_id: e.target.value })} className={`w-full px-4 py-2.5 rounded-xl border bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition-all ${formErrors.teacher_id ? "border-red-300" : "border-slate-100"}`}>
+                  <option value="">-- Select Teacher --</option>
+                  {state.teachers.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                {formErrors.teacher_id && (
+                  <p className="text-sm text-red-600 flex items-center gap-1 mt-1"><X size={14} />{formErrors.teacher_id}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Department</label>
+                  <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition-all">
+                    <option>Natural Science</option><option>Social Science</option><option>Language</option><option>IT</option><option>Arts</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Periods Per Week</label>
+                  <input type="number" value={form.periodsPerWeek} onChange={(e) => setForm({ ...form, periodsPerWeek: Number(e.target.value) })} className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition-all" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition-all" rows={3} placeholder="Subject description..." />
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+              <button onClick={() => setModalOpen(false)} className="flex-1 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all">
+                Cancel
+              </button>
+              <button onClick={handleSave} disabled={loading} className="flex-1 py-3 rounded-2xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={18} />}
+                {editId ? "Update Record" : "Save Subject"}
+              </button>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned Teacher</label>
-            <select
-              value={form.teacher_id}
-              onChange={(e) => setForm({ ...form, teacher_id: e.target.value })}
-              className={`w-full px-4 py-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900 ${
-                formErrors.teacher_id ? "border-red-300" : "border-gray-300"
-              }`}
-            >
-              <option value="">-- Select Teacher --</option>
-              {state.teachers.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-            {formErrors.teacher_id && (
-              <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
-                <X size={14} />
-                {formErrors.teacher_id}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50" disabled={loading}>
-              Cancel
-            </button>
-            <button onClick={handleSave} disabled={loading} className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  {editId ? "Update" : "Add Subject"}
-                </>
-              )}
-            </button>
+        </div>
+      )}
+
+      {/* Subject Detail Modal */}
+      {viewSubject && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewSubject(null)}>
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{viewSubject.name}</h3>
+                  <p className="text-sm font-bold text-slate-500">{viewSubject.code} • {viewSubject.department || 'Natural Science'}</p>
+                </div>
+                <button onClick={() => setViewSubject(null)} className="w-8 h-8 bg-slate-200/50 hover:bg-slate-200 rounded-xl flex items-center justify-center text-slate-600 transition-colors">✕</button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/50">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Description</p>
+                <p className="text-sm font-medium text-slate-700 leading-relaxed">{viewSubject.description || 'No description available for this subject.'}</p>
+              </div>
+              
+              <div className="space-y-2">
+                {[
+                  ['Grade Level', `Grade ${viewSubject.grade}`], 
+                  ['Assigned Teacher', state.teachers.find(t => t.id === viewSubject.teacher_id)?.name || 'Unassigned'], 
+                  ['Periods Per Week', `${viewSubject.periodsPerWeek || 4} periods`]
+                ].map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100/50">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{l}</span>
+                    <span className="text-sm font-bold text-slate-900">{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button onClick={() => { setViewSubject(null); openEdit(viewSubject); }} className="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                  <Pencil size={16} /> Edit Subject
+                </button>
+                <button onClick={() => setViewSubject(null)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-colors">Close</button>
+              </div>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
 
       <ConfirmationDialog
         open={confirmDelete.open}

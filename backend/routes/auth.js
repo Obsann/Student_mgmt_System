@@ -4,9 +4,15 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
 const { protect } = require("../middleware/auth");
-const { sendPasswordResetEmail } = require("../utils/mailer");
+const { sendPasswordResetEmail, sendCredentialsEmail } = require("../utils/mailer");
+const { upload, isConfigured } = require("../utils/cloudinary");
 
 const router = express.Router();
+
+function generatePassword(length = 10) {
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#";
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -72,67 +78,9 @@ router.get("/me", async (req, res) => {
   }
 });
 
-// POST /api/auth/register  — PUBLIC registration is ALWAYS student role
+// POST /api/auth/register  — PUBLIC registration is currently disabled
 router.post("/register", async (req, res) => {
-  try {
-    const { username, password, name, email } = req.body;
-
-    if (!username || !password || !name || !email) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email address format" });
-    }
-
-    // Check if user already exists
-    const existing = await User.findOne({ $or: [{ username }, { email }] });
-    if (existing) {
-      return res.status(409).json({ message: "Username or email already exists" });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-
-    // SECURITY: Public registration is ALWAYS "student" — admin/teacher accounts
-    // can ONLY be created by authenticated admins via the dashboard.
-    const user = await User.create({
-      username,
-      password,
-      role: "student",
-      name,
-      email,
-    });
-
-    const token = signToken(user._id);
-
-    await AuditLog.create({
-      userId: user._id,
-      userName: user.name,
-      action: "REGISTER",
-      entity: "User",
-      entityId: user._id.toString(),
-      details: `${user.name} registered as student`,
-      ipAddress: req.ip,
-    });
-
-    res.status(201).json({
-      token,
-      user: {
-        _id: user._id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        refId: user.refId,
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Registration failed. Please try again." });
-  }
+  return res.status(403).json({ message: "Public registration is disabled. Please contact the school registrar or your teacher to enroll." });
 });
 
 // PUT /api/auth/password — change password (authenticated)
@@ -173,12 +121,29 @@ router.put("/password", protect, async (req, res) => {
 });
 
 // PUT /api/auth/profile — update profile info (authenticated)
-router.put("/profile", protect, async (req, res) => {
+router.put("/profile", protect, upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'coverPhoto', maxCount: 1 }]), async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, verificationQuestions } = req.body;
     const updates = {};
     if (name) updates.name = name;
     if (email) updates.email = email;
+    if (verificationQuestions) {
+      try {
+        updates.verificationQuestions = JSON.parse(verificationQuestions);
+      } catch (e) {
+        // If it's already an object/array, or just ignore if invalid
+        updates.verificationQuestions = verificationQuestions;
+      }
+    }
+
+    if (req.files) {
+      if (req.files.avatar && req.files.avatar[0].path) {
+        updates.avatar = req.files.avatar[0].path;
+      }
+      if (req.files.coverPhoto && req.files.coverPhoto[0].path) {
+        updates.coverPhoto = req.files.coverPhoto[0].path;
+      }
+    }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
       new: true,
@@ -187,54 +152,116 @@ router.put("/profile", protect, async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Sync avatar to refId if needed
+    if (updates.avatar && user.refId) {
+      if (user.role === "student") {
+        const Student = require("../models/Student");
+        await Student.findByIdAndUpdate(user.refId, { avatar: updates.avatar });
+      } else if (user.role === "teacher") {
+        const Teacher = require("../models/Teacher");
+        await Teacher.findByIdAndUpdate(user.refId, { avatar: updates.avatar });
+      }
+    }
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// POST /api/auth/forgot-password — request password reset
+// GET /api/auth/verification-questions/:username — get questions for a user
+router.get("/verification-questions/:username", async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (!user.verificationQuestions || user.verificationQuestions.length === 0) {
+      return res.status(400).json({ message: "No verification questions set for this user." });
+    }
+    // Only return the questions, not the answers
+    const questions = user.verificationQuestions.map(q => q.question);
+    res.json({ questions });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST /api/auth/forgot-password — verify identity and send new password
 router.post("/forgot-password", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { username, answers } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ message: "Email address is required" });
+    if (!username || !answers || !Array.isArray(answers)) {
+      return res.status(400).json({ message: "Username and answers are required" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ username });
     if (!user) {
-      // Return success even if user not found (prevents user enumeration)
-      return res.json({ message: "If an account with that email exists, reset instructions have been sent." });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate a secure reset token
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    if (!user.email) {
+      return res.status(400).json({ message: "User has no email address configured to receive the password." });
+    }
 
-    // Store hashed token + expiry in the user document
-    user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    if (!user.verificationQuestions || user.verificationQuestions.length === 0) {
+      return res.status(400).json({ message: "Identity verification is not set up for this account. Contact admin." });
+    }
+
+    if (answers.length !== user.verificationQuestions.length) {
+      return res.status(400).json({ message: "Incorrect number of answers." });
+    }
+
+    // Check answers (case-insensitive)
+    let isVerified = true;
+    for (let i = 0; i < user.verificationQuestions.length; i++) {
+      const expected = user.verificationQuestions[i].answer.toLowerCase().trim();
+      const provided = answers[i].toLowerCase().trim();
+      if (expected !== provided) {
+        isVerified = false;
+        break;
+      }
+    }
+
+    if (!isVerified) {
+      await AuditLog.create({
+        userId: user._id,
+        userName: user.name,
+        action: "PASSWORD_RESET_FAILED",
+        entity: "User",
+        details: `Failed identity verification for ${user.username}`,
+        ipAddress: req.ip,
+      });
+      return res.status(401).json({ message: "Identity verification failed. Incorrect answers." });
+    }
+
+    // Verified! Generate new password
+    const newPassword = generatePassword();
+    user.password = newPassword;
     await user.save();
 
-    // Send the reset email (uses dev-mode logging if SMTP not configured)
-    await sendPasswordResetEmail({
-      to: email,
-      name: user.name,
-      token: resetToken, // Send the UNHASHED token — user submits it, we hash to compare
+    // Send the new password via email using the credentials template
+    await sendCredentialsEmail({
+      to: user.email,
+      studentName: user.name,
+      username: user.username,
+      password: newPassword,
+      grade: 'N/A',
+      section: 'N/A',
     });
 
     await AuditLog.create({
       userId: user._id,
       userName: user.name,
-      action: "PASSWORD_RESET_REQUEST",
+      action: "PASSWORD_RESET_SUCCESS",
       entity: "User",
       entityId: user._id.toString(),
-      details: `Password reset requested for ${email}`,
+      details: `Password reset via identity verification for ${user.username}`,
       ipAddress: req.ip,
     });
 
-    res.json({ message: "If an account with that email exists, reset instructions have been sent." });
+    res.json({ message: "Identity verified. A new password has been sent to your email address." });
   } catch (err) {
     res.status(500).json({ message: "Something went wrong. Please try again." });
   }

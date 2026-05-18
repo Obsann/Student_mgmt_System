@@ -1,122 +1,171 @@
-import { Users, BookOpen, UserCheck, TrendingUp, Award } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
-import StatCard from "../../components/StatCard";
-import { getEthiopianGrade } from "../../utils/gradeCalculator";
 
 export default function AdminDashboard() {
   const { state } = useApp();
+  
   const totalStudents = state.students.length;
   const totalTeachers = state.teachers.length;
+  const activeTeachers = state.teachers.filter(t => t.status === 'Active').length;
+  // Pending enrollments logic: either from state or mock
+  const pendingEnrollments = state.students.filter(s => s.status === 'pending').length || 0; // fallback if status doesn't exist
   const totalSubjects = state.subjects.length;
-  const grade9 = state.students.filter((s) => s.grade === "9").length;
-  const grade10 = state.students.filter((s) => s.grade === "10").length;
-  const totalAttendance = state.attendance.length;
-  const presentCount = state.attendance.filter((a) => a.status === "present").length;
-  const avgAttendance = totalAttendance > 0 ? Math.round((presentCount / totalAttendance) * 100) : 0;
+  
+  // Fake audit logs length for UI
+  const todayLogs = 24; 
+
+  const totalMale = state.students.filter(s => s.gender === 'Male').length;
+  const totalFemale = state.students.filter(s => s.gender === 'Female').length;
+
+  const grade9 = state.students.filter(s => s.grade === '9').length;
+  const grade10 = state.students.filter(s => s.grade === '10').length;
+  const sections = Array.from(new Set(state.students.map(s => `${s.grade}${s.section}`)));
+
+  const deptCount: Record<string, number> = {};
+  state.teachers.forEach(t => { deptCount[t.department || 'General'] = (deptCount[t.department || 'General'] || 0) + 1; });
+
+  const recentLogs = [
+    { id: 1, user: 'System', details: 'Database backup completed', timestamp: '10 mins ago', category: 'System' },
+    { id: 2, user: 'Abebe Kebede', details: 'Entered marks for Grade 9 Math', timestamp: '1 hour ago', category: 'Marks' },
+    { id: 3, user: 'Hanna Tadesse', details: 'Registered new student', timestamp: '2 hours ago', category: 'Student' }
+  ];
+
+  const stats = [
+    { label: 'Total Students', value: totalStudents, icon: '👨‍🎓', color: 'from-blue-500 to-blue-600', bg: 'bg-blue-50' },
+    { label: 'Total Teachers', value: totalTeachers, icon: '👩‍🏫', color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Active Subjects', value: totalSubjects, icon: '📚', color: 'from-purple-500 to-purple-600', bg: 'bg-purple-50' },
+    { label: 'Pending Enrollments', value: pendingEnrollments, icon: '📋', color: 'from-amber-500 to-amber-600', bg: 'bg-amber-50' },
+    { label: 'Active Teachers', value: activeTeachers, icon: '✅', color: 'from-teal-500 to-teal-600', bg: 'bg-teal-50' },
+    { label: 'Sections', value: sections.length, icon: '🏫', color: 'from-pink-500 to-pink-600', bg: 'bg-pink-50' },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Users size={28} />} label="Total Students" value={totalStudents} color="blue" sub={`Grade 9: ${grade9} | Grade 10: ${grade10}`} />
-        <StatCard icon={<UserCheck size={28} />} label="Teachers" value={totalTeachers} color="green" />
-        <StatCard icon={<BookOpen size={28} />} label="Subjects" value={totalSubjects} color="purple" />
-        <StatCard icon={<TrendingUp size={28} />} label="Avg Attendance" value={`${avgAttendance}%`} color="orange" />
+    <div className="space-y-6 animate-fade-in">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl shadow-slate-900/20 group">
+        <div className="absolute right-0 top-0 w-64 h-64 opacity-5 group-hover:rotate-45 transition-transform duration-1000">
+          <svg viewBox="0 0 200 200" fill="currentColor"><circle cx="100" cy="100" r="100" /></svg>
+        </div>
+        <div className="absolute right-32 bottom-0 w-40 h-40 opacity-5 group-hover:-translate-y-4 transition-transform duration-700">
+          <svg viewBox="0 0 200 200" fill="currentColor"><circle cx="100" cy="100" r="100" /></svg>
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold uppercase tracking-wider backdrop-blur-sm border border-amber-500/20">Admin Panel</span>
+            <span className="px-3 py-1 bg-white/10 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-wider backdrop-blur-sm border border-white/10">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+          <h2 className="text-3xl font-black tracking-tight">Welcome, System Administrator! 🔐</h2>
+          <p className="text-slate-300 mt-2 text-sm font-medium max-w-xl leading-relaxed">
+            Kera High School management dashboard. Today you have <span className="text-amber-400 font-bold">{pendingEnrollments} pending enrollment</span> requests and <span className="text-blue-400 font-bold">{todayLogs} system activities</span>.
+          </p>
+        </div>
       </div>
 
-      {/* Grade Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up">
-        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all">
-          <h3 className="text-base font-extrabold text-slate-900 mb-5">Students by Grade & Section</h3>
-          {["9", "10"].map((grade) => (
-            <div key={grade} className="mb-4">
-              <div className="flex items-center justify-between text-sm font-bold text-slate-600 mb-2">
-                <span>Grade {grade}</span>
-                <span className="text-slate-400">{state.students.filter((s) => s.grade === grade).length} students</span>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+        {stats.map((stat) => (
+          <div key={stat.label} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group">
+            <div className={`w-12 h-12 ${stat.bg} rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+            <p className="text-3xl font-black text-slate-900">{stat.value}</p>
+            <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Student Demographics */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '0.2s' }}>
+          <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+            <h3 className="font-extrabold text-slate-900">Student Demographics</h3>
+          </div>
+          <div className="p-6 space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Male Students</span>
+                <span className="text-sm font-black text-blue-600">{totalMale} ({totalStudents > 0 ? Math.round((totalMale/totalStudents)*100) : 0}%)</span>
               </div>
-              <div className="flex gap-2">
-                {["A", "B"].map((sec) => {
-                  const count = state.students.filter((s) => s.grade === grade && s.section === sec).length;
-                  const width = totalStudents > 0 ? (count / totalStudents) * 100 : 0;
-                  return (
-                    <div key={sec} className="flex-1 group">
-                      <div className="bg-slate-100 rounded-full h-4 overflow-hidden shadow-inner">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${grade === "9" ? "bg-gradient-to-r from-blue-400 to-blue-500" : "bg-gradient-to-r from-purple-400 to-purple-500"}`}
-                          style={{ width: `${Math.max(width * 2, 10)}%` }}
-                        />
-                      </div>
-                      <div className="text-xs font-bold text-slate-400 mt-1 text-center group-hover:text-slate-600 transition-colors">Sec {sec}: {count}</div>
-                    </div>
-                  );
-                })}
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div className="bg-blue-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalStudents > 0 ? (totalMale/totalStudents)*100 : 0}%` }}></div>
               </div>
             </div>
-          ))}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Female Students</span>
+                <span className="text-sm font-black text-pink-600">{totalFemale} ({totalStudents > 0 ? Math.round((totalFemale/totalStudents)*100) : 0}%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div className="bg-pink-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalStudents > 0 ? (totalFemale/totalStudents)*100 : 0}%` }}></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="bg-emerald-50 rounded-2xl p-4 text-center border border-emerald-100/50">
+                <p className="text-3xl font-black text-emerald-700">{grade9}</p>
+                <p className="text-xs font-bold text-emerald-600 mt-1 uppercase tracking-wider">Grade 9</p>
+              </div>
+              <div className="bg-purple-50 rounded-2xl p-4 text-center border border-purple-100/50">
+                <p className="text-3xl font-black text-purple-700">{grade10}</p>
+                <p className="text-xs font-bold text-purple-600 mt-1 uppercase tracking-wider">Grade 10</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all">
-          <h3 className="text-base font-extrabold text-slate-900 mb-5">Subject-Teacher Assignments</h3>
-          <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
-            {state.subjects.slice(0, 8).map((sub) => {
-              const teacher = state.teachers.find((t) => t.id === sub.teacher_id);
+        {/* Department Distribution */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '0.3s' }}>
+          <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+            <h3 className="font-extrabold text-slate-900">Departments & Teachers</h3>
+          </div>
+          <div className="p-6 space-y-3">
+            {Object.entries(deptCount).map(([dept, count]) => {
+              const colors: Record<string, string> = {
+                'Natural Science': 'bg-emerald-500',
+                'Social Science': 'bg-blue-500',
+                'Language': 'bg-purple-500',
+                'Mathematics': 'bg-amber-500',
+                'General': 'bg-slate-500'
+              };
               return (
-                <div key={sub.id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
-                  <span className="font-mono bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg text-xs font-bold">{sub.code}</span>
-                  <span className="text-slate-700 font-bold text-sm flex-1">{sub.name}</span>
-                  <span className="text-slate-400 text-xs font-semibold bg-white px-2 py-1 rounded-lg border border-slate-200">
-                    {teacher?.name?.split(" ").pop() || "N/A"}
-                  </span>
+                <div key={dept} className="flex items-center gap-4 p-3 bg-slate-50 hover:bg-slate-100 transition-colors rounded-2xl border border-slate-100/50">
+                  <div className={`w-12 h-12 ${colors[dept] || 'bg-slate-500'} rounded-xl flex items-center justify-center text-white text-lg font-black shadow-sm`}>
+                    {count}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-slate-900">{dept}</p>
+                    <p className="text-xs font-medium text-slate-500">{count} teacher{count > 1 ? 's' : ''}</p>
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
-      </div>
 
-      {/* Recent Marks */}
-      <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all animate-fade-up" style={{ animationDelay: '0.1s' }}>
-        <h3 className="text-base font-extrabold text-slate-900 mb-5 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
-            <Award size={16} />
+        {/* Recent Activity */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '0.4s' }}>
+          <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+            <h3 className="font-extrabold text-slate-900">Recent System Activity</h3>
           </div>
-          Recent Mark Entries
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-slate-400 border-b border-slate-100 font-bold text-xs uppercase tracking-wider">
-                <th className="text-left py-3 px-4">Student</th>
-                <th className="text-left py-3 px-4">Subject</th>
-                <th className="text-left py-3 px-4">Type</th>
-                <th className="text-center py-3 px-4">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.marks.slice(-10).reverse().map((m) => {
-                const student = state.students.find((s) => s.id === m.student_id);
-                const subject = state.subjects.find((s) => s.id === m.subject_id);
-                return (
-                  <tr key={m.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
-                    <td className="py-3 px-4 text-slate-700 font-bold">{student?.first_name} {student?.last_name}</td>
-                    <td className="py-3 px-4 text-slate-500 font-medium">{subject?.name}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold capitalize border border-blue-100 group-hover:bg-blue-100 transition-colors">
-                        {m.assessment_type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center font-black">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="text-slate-700">{m.score}</span>
-                        <span className={`px-2 py-1 rounded-lg text-xs border ${getEthiopianGrade(m.score).color} bg-opacity-10 group-hover:scale-110 transition-transform`}>
-                          {getEthiopianGrade(m.score).grade}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="p-6 space-y-4">
+            {recentLogs.map(log => (
+              <div key={log.id} className="p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors border border-slate-100/50">
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
+                    log.category === 'Student' ? 'bg-blue-100 text-blue-600' :
+                    log.category === 'Teacher' ? 'bg-emerald-100 text-emerald-600' :
+                    log.category === 'Marks' ? 'bg-purple-100 text-purple-600' :
+                    log.category === 'System' ? 'bg-amber-100 text-amber-600' :
+                    'bg-slate-100 text-slate-600'
+                  }`}>
+                    {log.category === 'System' ? '⚙️' : log.category === 'Marks' ? '📝' : log.category === 'Teacher' ? '👩‍🏫' : '👨‍🎓'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900">{log.user}</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1 line-clamp-2">{log.details}</p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">{log.timestamp}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

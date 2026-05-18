@@ -1,66 +1,107 @@
 import { useState } from "react";
-import { Users, BookOpen, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Search, Upload, Info, MapPin, Save, Pencil, Trash2, BookOpen } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import { useToast } from "../../contexts/ToastContext";
 import { api } from "../../services/api";
-import EmptyState from "../../components/EmptyState";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
-import Breadcrumb from "../../components/Breadcrumb";
 import Pagination from "../../components/Pagination";
 import FormField from "../../components/FormField";
-import Modal from "../../components/Modal";
-import SearchInput from "../../components/SearchInput";
 import type { Student } from "../../types";
 
 export default function ManageStudents() {
   const { state, addStudent, updateStudent, deleteStudent, loadAllData } = useApp();
   const { addToast } = useToast();
-  const [search, setSearch] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState("All");
+  const [selectedSection, setSelectedSection] = useState("All");
+  const [selectedGender, setSelectedGender] = useState("All");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewStudent, setViewStudent] = useState<Student | null>(null);
+
   const [form, setForm] = useState({
-    first_name: "", last_name: "", age: 15, gender: "Male" as "Male" | "Female",
-    grade: "9", section: "A", roll_number: "", parent_phone: "", address: "",
+    first_name: "", middle_name: "", last_name: "", 
+    date_of_birth: "", gender: "Male" as "Male" | "Female",
+    fayda_id: "", grade_8_gpa: 0, previous_school: "", national_exam_number: "",
+    region: "Addis Ababa", zone: "", kebele: "", house_no: "",
+    guardian_name: "", guardian_relation: "", parent_phone: "",
+    grade: "9", section: "A", roll_number: "", status: "active" as "active" | "withdrawn" | "pending"
   });
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [selectedClass, setSelectedClass] = useState<{ grade: string, section: string } | null>(null);
 
   const itemsPerPage = 10;
   
-  // Get unique classes
-  const classes = Array.from(new Set(state.students.map(s => `${s.grade}-${s.section}`)))
-    .map(c => {
-      const [grade, section] = c.split("-");
-      return { grade, section };
-    })
-    .sort((a, b) => parseInt(a.grade) - parseInt(b.grade) || a.section.localeCompare(b.section));
+  // Filtering Logic
+  const filteredStudents = state.students.filter(s => {
+    const matchesSearch = `${s.first_name} ${s.last_name} ${s.fayda_id} ${s.roll_number}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesGrade = selectedGrade === 'All' || s.grade === selectedGrade;
+    const matchesSection = selectedSection === 'All' || s.section === selectedSection;
+    const matchesGender = selectedGender === 'All' || s.gender === selectedGender;
+    return matchesSearch && matchesGrade && matchesSection && matchesGender;
+  });
 
-  const filtered = selectedClass 
-    ? state.students.filter((s) => s.grade === selectedClass.grade && s.section === selectedClass.section && `${s.first_name} ${s.last_name} ${s.roll_number}`.toLowerCase().includes(search.toLowerCase()))
-    : [];
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginatedStudents = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalStudents = state.students.length;
+  const totalMale = state.students.filter(s => s.gender === 'Male').length;
+  const totalFemale = state.students.filter(s => s.gender === 'Female').length;
+  const totalSections = new Set(state.students.map(s => `${s.grade}${s.section}`)).size;
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    if (!form.first_name.trim()) errors.first_name = "First name is required";
-    if (!form.last_name.trim()) errors.last_name = "Last name is required";
-    if (form.age < 10 || form.age > 25) errors.age = "Age must be between 10 and 25";
-    if (!form.roll_number.trim()) errors.roll_number = "Roll number is required";
-    if (!form.parent_phone.trim()) errors.parent_phone = "Parent phone is required";
-    if (!form.address.trim()) errors.address = "Address is required";
+    if (!form.first_name.trim()) errors.first_name = "Required";
+    if (!form.last_name.trim()) errors.last_name = "Required";
+    if (!form.fayda_id.trim() || form.fayda_id.length !== 12) errors.fayda_id = "12 digits required";
+    if (!form.roll_number.trim()) errors.roll_number = "Required";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ first_name: "", last_name: "", age: 15, gender: "Male", grade: "9", section: "A", roll_number: "", parent_phone: "", address: "" });
+    setForm({
+      first_name: "", middle_name: "", last_name: "", 
+      date_of_birth: "", gender: "Male",
+      fayda_id: "", grade_8_gpa: 0, previous_school: "", national_exam_number: "",
+      region: "Addis Ababa", zone: "", kebele: "", house_no: "",
+      guardian_name: "", guardian_relation: "", parent_phone: "",
+      grade: "9", section: "A", roll_number: "", status: "active"
+    });
+    setFormErrors({});
+    setModalOpen(true);
+  };
+
+  const openEdit = (s: Student) => {
+    setEditId(s.id);
+    setForm({
+      first_name: s.first_name,
+      middle_name: s.middle_name,
+      last_name: s.last_name,
+      date_of_birth: s.date_of_birth.split("T")[0],
+      gender: s.gender,
+      fayda_id: s.fayda_id,
+      grade_8_gpa: s.grade_8_gpa,
+      previous_school: s.previous_school,
+      national_exam_number: s.national_exam_number,
+      region: s.address.region,
+      zone: s.address.zone,
+      kebele: s.address.kebele,
+      house_no: s.address.house_no,
+      guardian_name: s.guardian_name,
+      guardian_relation: s.guardian_relation,
+      parent_phone: s.parent_phone,
+      grade: s.grade,
+      section: s.section,
+      roll_number: s.roll_number,
+      status: s.status
+    });
     setFormErrors({});
     setModalOpen(true);
   };
@@ -73,38 +114,59 @@ export default function ManageStudents() {
       try {
         const text = evt.target?.result as string;
         const lines = text.split('\n').filter(l => l.trim().length > 0);
-        // Assuming CSV: firstName,lastName,age,gender,grade,section,rollNumber,parentPhone,address
+        
         const students = lines.slice(1).map(line => {
-          const [first_name, last_name, age, gender, grade, section, roll_number, parent_phone, address] = line.split(',');
-          return { first_name, last_name, age: Number(age), gender: gender.trim() as any, grade: grade.trim(), section: section.trim(), roll_number, parent_phone, address, enrolled_date: new Date().toISOString(), status: 'active' as const };
+          const parts = line.split(',').map(p => p.trim());
+          return {
+            first_name: parts[0],
+            middle_name: parts[1],
+            last_name: parts[2],
+            date_of_birth: parts[3],
+            gender: parts[4] as any,
+            fayda_id: parts[5],
+            grade_8_gpa: Number(parts[6]),
+            previous_school: parts[7],
+            national_exam_number: parts[8],
+            address: {
+              region: parts[9],
+              zone: parts[10],
+              kebele: parts[11],
+              house_no: parts[12],
+            },
+            guardian_name: parts[13],
+            guardian_relation: parts[14],
+            parent_phone: parts[15],
+            grade: parts[16],
+            section: parts[17],
+            roll_number: parts[18],
+            status: "active" as const,
+            enrolled_date: new Date().toISOString()
+          };
         });
+
         await api.bulkImportStudents(students);
         await loadAllData();
-        addToast({ type: "success", title: "Success", message: "Bulk import completed." });
-      } catch (err: unknown) {
-        console.error(err);
-        addToast({ type: "error", title: "Import Failed", message: err instanceof Error ? err.message : "Bulk import failed. Check CSV format." });
+        addToast({ type: "success", title: "Import Successful", message: `Imported ${students.length} students.` });
+      } catch (err: any) {
+        addToast({ type: "error", title: "Import Failed", message: err.message || "Invalid CSV format" });
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // reset
-  };
-
-  const openEdit = (s: Student) => {
-    setEditId(s.id);
-    setForm({ first_name: s.first_name, last_name: s.last_name, age: s.age, gender: s.gender, grade: s.grade, section: s.section, roll_number: s.roll_number, parent_phone: s.parent_phone, address: s.address });
-    setFormErrors({});
-    setModalOpen(true);
+    e.target.value = '';
   };
 
   const handleSave = async () => {
     if (!validateForm()) return;
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        address: { region: form.region, zone: form.zone, kebele: form.kebele, house_no: form.house_no }
+      };
       if (editId) {
-        await updateStudent(editId, form);
+        await updateStudent(editId, payload);
       } else {
-        await addStudent({ ...form, enrolled_date: new Date().toISOString().split("T")[0] });
+        await addStudent({ ...payload, enrolled_date: new Date().toISOString() });
       }
       setModalOpen(false);
     } finally {
@@ -123,253 +185,279 @@ export default function ManageStudents() {
     }
   };
 
-  const breadcrumbs = [
-    { label: "Dashboard", href: "#dashboard" },
-    { label: "Students", current: true },
-  ];
-
-  if (state.students.length === 0) {
-    return (
-      <div className="space-y-6">
-        <Breadcrumb items={breadcrumbs} />
-        <EmptyState
-          icon={<Users size={48} />}
-          title="No Students Yet"
-          description="Get started by adding your first student to the system."
-          action={
-            <button onClick={openAdd} className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30">
-              <Plus size={16} /> Add First Student
-            </button>
-          }
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <Breadcrumb items={breadcrumbs} />
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        {selectedClass && (
-          <button 
-            onClick={() => { setSelectedClass(null); setSearch(""); }} 
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-colors"
-          >
-            &larr; Back to Classes
-          </button>
-        )}
-        <div className="flex-1">
-          {selectedClass && (
-            <SearchInput value={search} onChange={setSearch} placeholder={`Search in Grade ${selectedClass.grade}${selectedClass.section}...`} />
-          )}
+    <div className="space-y-6 animate-fade-in">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👨‍🎓</div>
+          <p className="text-3xl font-black text-slate-900">{totalStudents}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Students</p>
         </div>
-        <div className="flex gap-2">
-          <label className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-xl cursor-pointer hover:bg-indigo-100 transition-colors">
-            <BookOpen size={16} /> Bulk Import CSV
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👦</div>
+          <p className="text-3xl font-black text-slate-900">{totalMale}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Male</p>
+        </div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👧</div>
+          <p className="text-3xl font-black text-slate-900">{totalFemale}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Female</p>
+        </div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📚</div>
+          <p className="text-3xl font-black text-slate-900">{totalSections}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Sections</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[240px]">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Search</label>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input type="text" placeholder="Search by name, ID or roll number..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Grade</label>
+            <select value={selectedGrade} onChange={e => { setSelectedGrade(e.target.value); setCurrentPage(1); }}
+              className="block w-28 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
+              <option value="All">All</option><option value="9">Grade 9</option><option value="10">Grade 10</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Section</label>
+            <select value={selectedSection} onChange={e => { setSelectedSection(e.target.value); setCurrentPage(1); }}
+              className="block w-28 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
+              <option value="All">All</option><option value="A">A</option><option value="B">B</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Gender</label>
+            <select value={selectedGender} onChange={e => { setSelectedGender(e.target.value); setCurrentPage(1); }}
+              className="block w-32 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
+              <option value="All">All</option><option value="Male">Male</option><option value="Female">Female</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 rounded-2xl font-bold text-sm cursor-pointer hover:bg-indigo-100 transition-colors h-[46px]">
+            <Upload size={16} /> Import
             <input type="file" accept=".csv" className="hidden" onChange={handleBulkImport} />
           </label>
-          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors">
+          <button onClick={openAdd} className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5 h-[46px]">
             <Plus size={16} /> Add Student
           </button>
         </div>
       </div>
 
-      {!selectedClass ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {classes.map((c) => {
-            const count = state.students.filter(s => s.grade === c.grade && s.section === c.section).length;
-            return (
-              <div 
-                key={`${c.grade}-${c.section}`} 
-                onClick={() => setSelectedClass(c)}
-                className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer hover:-translate-y-1 group"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Users size={24} />
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-gray-50 text-gray-500 text-xs font-bold border border-gray-100">
-                    {count} Students
-                  </span>
-                </div>
-                <h3 className="text-xl font-black text-gray-900">Grade {c.grade}</h3>
-                <p className="text-sm font-medium text-gray-500 mt-1">Section {c.section}</p>
-              </div>
-            );
-          })}
+      {/* Table */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '0.2s' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Roll / ID</th>
+                <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Class</th>
+                <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
+                <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Parent / Phone</th>
+                <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {paginatedStudents.length > 0 ? paginatedStudents.map((student) => (
+                <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black ${student.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                        {student.first_name[0]}{student.last_name[0]}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{student.first_name} {student.last_name}</p>
+                        <span className={`inline-flex mt-0.5 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${student.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/50' : 'bg-red-50 text-red-600 border border-red-100/50'}`}>
+                          {student.status}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-bold text-slate-700">R: {student.roll_number}</div>
+                    <div className="text-xs font-mono text-slate-400 mt-0.5">{student.fayda_id}</div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${student.grade === '9' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                      {student.grade}-{student.section}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-sm font-medium text-slate-600">{student.gender}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-medium text-slate-700">{student.guardian_name || 'N/A'}</div>
+                    <div className="text-xs font-medium text-slate-500 mt-0.5">{student.parent_phone || 'N/A'}</div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => setViewStudent(student)} className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors">View</button>
+                      <button onClick={() => openEdit(student)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">Edit</button>
+                      <button onClick={() => handleDelete(student)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors">Del</button>
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">
+                    No students found matching your criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<Search size={48} />}
-          title="No Students Found"
-          description="Try adjusting your search or filter criteria."
-        />
-      ) : (
-        <>
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-gray-500 text-xs">
-                    <th className="text-left py-3 px-4">Roll #</th>
-                    <th className="text-left py-3 px-4">Name</th>
-                    <th className="text-left py-3 px-4 hidden sm:table-cell">Gender</th>
-                    <th className="text-left py-3 px-4">Grade</th>
-                    <th className="text-left py-3 px-4 hidden md:table-cell">Age</th>
-                    <th className="text-left py-3 px-4 hidden lg:table-cell">Parent Phone</th>
-                    <th className="text-right py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedStudents.map((s) => (
-                    <tr key={s.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="py-2.5 px-4 font-mono text-xs text-gray-500">{s.roll_number}</td>
-                      <td className="py-2.5 px-4 font-medium text-gray-900">{s.first_name} {s.last_name}</td>
-                      <td className="py-2.5 px-4 hidden sm:table-cell">
-                        <span className={`px-2 py-0.5 rounded text-xs ${s.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>{s.gender}</span>
-                      </td>
-                      <td className="py-2.5 px-4 text-gray-600">{s.grade}{s.section}</td>
-                      <td className="py-2.5 px-4 text-gray-600 hidden md:table-cell">{s.age}</td>
-                      <td className="py-2.5 px-4 text-gray-500 font-mono text-xs hidden lg:table-cell">{s.parent_phone}</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil size={14} /></button>
-                        <button onClick={() => handleDelete(s)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 ml-1"><Trash2 size={14} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/50">
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Student Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl animate-fade-scale flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-orange-50/50">
+              <h3 className="text-xl font-black text-slate-900">{editId ? "Edit Student Record" : "Add New Student"}</h3>
+              <p className="text-sm font-medium text-slate-500 mt-1">Fill in the student details below</p>
             </div>
-            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                showInfo={true}
-                totalItems={filtered.length}
-                itemsPerPage={itemsPerPage}
-              />
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+              
+              <SectionTitle icon={<Info size={16} />} title="Identity" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="First Name" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} error={formErrors.first_name} required />
+                <FormField label="Middle Name" value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} />
+                <FormField label="Last Name" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} error={formErrors.last_name} required />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="DOB" type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Gender</label>
+                  <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value as any })} className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition-all">
+                    <option>Male</option><option>Female</option>
+                  </select>
+                </div>
+                <FormField label="Fayda ID" value={form.fayda_id} onChange={(e) => setForm({ ...form, fayda_id: e.target.value })} error={formErrors.fayda_id} required />
+              </div>
+
+              <SectionTitle icon={<BookOpen size={16} />} title="Academic" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="Grade 8 GPA" type="number" value={form.grade_8_gpa} onChange={(e) => setForm({ ...form, grade_8_gpa: Number(e.target.value) })} />
+                <FormField label="Previous School" value={form.previous_school} onChange={(e) => setForm({ ...form, previous_school: e.target.value })} />
+                <FormField label="National Exam #" value={form.national_exam_number} onChange={(e) => setForm({ ...form, national_exam_number: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <FormField label="Grade" value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} />
+                 <FormField label="Section" value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })} />
+                 <FormField label="Roll Number" value={form.roll_number} onChange={(e) => setForm({ ...form, roll_number: e.target.value })} error={formErrors.roll_number} required />
+              </div>
+
+              <SectionTitle icon={<MapPin size={16} />} title="Address & Contact" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <FormField label="Region" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+                <FormField label="Zone" value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} />
+                <FormField label="Kebele" value={form.kebele} onChange={(e) => setForm({ ...form, kebele: e.target.value })} />
+                <FormField label="House No" value={form.house_no} onChange={(e) => setForm({ ...form, house_no: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="Guardian Name" value={form.guardian_name} onChange={(e) => setForm({ ...form, guardian_name: e.target.value })} />
+                <FormField label="Relation" value={form.guardian_relation} onChange={(e) => setForm({ ...form, guardian_relation: e.target.value })} />
+                <FormField label="Phone" value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} />
+              </div>
+
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+              <button onClick={() => setModalOpen(false)} className="flex-1 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all">
+                Cancel
+              </button>
+              <button onClick={handleSave} disabled={loading} className="flex-1 py-3 rounded-2xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={18} />}
+                {editId ? "Update Record" : "Save Student"}
+              </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editId ? "Edit Student" : "Add New Student"}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <FormField
-              label="First Name"
-              value={form.first_name}
-              onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-              error={formErrors.first_name}
-              required
-            />
-            <FormField
-              label="Last Name"
-              value={form.last_name}
-              onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-              error={formErrors.last_name}
-              required
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <FormField
-              label="Age"
-              type="number"
-              value={form.age}
-              onChange={(e) => setForm({ ...form, age: Number(e.target.value) })}
-              error={formErrors.age}
-              required
-            />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Gender</label>
-              <select
-                value={form.gender}
-                onChange={(e) => setForm({ ...form, gender: e.target.value as "Male" | "Female" })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
-              >
-                <option>Male</option>
-                <option>Female</option>
-              </select>
+      {/* Student Detail Modal */}
+      {viewStudent && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewStudent(null)}>
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
+            <div className="h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-3xl relative">
+              <button onClick={() => setViewStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 hover:bg-black/20 rounded-xl flex items-center justify-center text-white transition-colors">✕</button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Grade</label>
-              <select
-                value={form.grade}
-                onChange={(e) => setForm({ ...form, grade: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
-              >
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
+            <div className="px-8 pb-8 -mt-10">
+              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                {viewStudent.first_name[0]}{viewStudent.last_name[0]}
+              </div>
+              <div className="mt-4 flex items-start justify-between">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">{viewStudent.first_name} {viewStudent.last_name}</h3>
+                  <p className="text-sm font-bold text-slate-500">Grade {viewStudent.grade} Section {viewStudent.section} • Roll: {viewStudent.roll_number}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border ${viewStudent.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50' : 'bg-red-50 text-red-600 border-red-100/50'}`}>
+                  {viewStudent.status}
+                </span>
+              </div>
+              
+              <div className="mt-6 space-y-2">
+                {[
+                  ['Fayda ID', viewStudent.fayda_id], 
+                  ['Phone', viewStudent.parent_phone || 'N/A'], 
+                  ['Age', viewStudent.date_of_birth ? `${new Date().getFullYear() - new Date(viewStudent.date_of_birth).getFullYear()} years` : 'N/A'], 
+                  ['Gender', viewStudent.gender], 
+                  ['Guardian', viewStudent.guardian_name || 'N/A'], 
+                  ['Address', `${viewStudent.address.region}, ${viewStudent.address.zone}, ${viewStudent.address.kebele}`], 
+                  ['Enrolled', viewStudent.enrolled_date ? new Date(viewStudent.enrolled_date).toLocaleDateString() : 'N/A']
+                ].map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100/50 hover:bg-slate-100/50 transition-colors">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{l}</span>
+                    <span className="text-sm font-bold text-slate-900 text-right">{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button onClick={() => { setViewStudent(null); openEdit(viewStudent); }} className="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                  <Pencil size={16} /> Edit Student
+                </button>
+                <button onClick={() => { setViewStudent(null); handleDelete(viewStudent); }} className="flex-1 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                  <Trash2 size={16} /> Delete
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Section</label>
-              <select
-                value={form.section}
-                onChange={(e) => setForm({ ...form, section: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
-              >
-                <option>A</option>
-                <option>B</option>
-                <option>C</option>
-              </select>
-            </div>
-            <FormField
-              label="Roll Number"
-              value={form.roll_number}
-              onChange={(e) => setForm({ ...form, roll_number: e.target.value })}
-              error={formErrors.roll_number}
-              helperText="e.g., KR/9/A/001"
-              required
-            />
-          </div>
-          <FormField
-            label="Parent Phone"
-            value={form.parent_phone}
-            onChange={(e) => setForm({ ...form, parent_phone: e.target.value })}
-            error={formErrors.parent_phone}
-            helperText="e.g., +251..."
-            required
-          />
-          <FormField
-            label="Address"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            error={formErrors.address}
-            required
-          />
-          <div className="flex gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50" disabled={loading}>
-              Cancel
-            </button>
-            <button onClick={handleSave} disabled={loading} className="flex-1 py-3 rounded-2xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  {editId ? "Update" : "Add Student"}
-                </>
-              )}
-            </button>
           </div>
         </div>
-      </Modal>
+      )}
 
       <ConfirmationDialog
         open={confirmDelete.open}
         onClose={() => setConfirmDelete({ open: false, student: null })}
         onConfirm={confirmDeleteStudent}
-        title="Delete Student"
-        description={`Are you sure you want to delete ${confirmDelete.student?.first_name} ${confirmDelete.student?.last_name}? This action cannot be undone.`}
-        confirmText="Delete Student"
+        title="Delete Student Record"
+        description={`Are you sure you want to delete ${confirmDelete.student?.first_name} ${confirmDelete.student?.last_name}? All associated records (marks, attendance) will be lost.`}
+        confirmText="Delete Record"
         type="danger"
       />
+    </div>
+  );
+}
+
+function SectionTitle({ icon, title }: any) {
+  return (
+    <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+      <div className="text-amber-500">{icon}</div>
+      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</h4>
     </div>
   );
 }

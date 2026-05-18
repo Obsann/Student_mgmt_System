@@ -8,6 +8,7 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  checkSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -35,7 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: user.name,
             email: user.email,
             ref_id: user.refId || "",
-          });
+            avatar: (user as any).avatar,
+            coverPhoto: (user as any).coverPhoto,
+            verificationQuestions: (user as any).verificationQuestions,
+          } as any);
         }
       } catch (err) {
         console.error("Auth init failed", err);
@@ -79,8 +83,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
   }, []);
 
+  const checkSession = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("sms_token");
+      if (token) {
+        const user = await api.getMe();
+        setCurrentUser({
+          id: user._id,
+          username: user.username,
+          role: user.role as User["role"],
+          name: user.name,
+          email: user.email,
+          ref_id: user.refId || "",
+          avatar: (user as any).avatar,
+          coverPhoto: (user as any).coverPhoto,
+          verificationQuestions: (user as any).verificationQuestions,
+        } as any);
+      }
+    } catch (err) {
+      console.error("Session check failed", err);
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, isLoading, isAuthenticated: !!currentUser }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, isLoading, isAuthenticated: !!currentUser, checkSession }}>
       {children}
     </AuthContext.Provider>
   );

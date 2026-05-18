@@ -5,18 +5,36 @@
 export interface Student {
   id: string;
   first_name: string;
+  middle_name: string;
   last_name: string;
-  age: number;
+  date_of_birth: string;
   gender: "Male" | "Female";
+  fayda_id: string; // 12-digit unique ID
+
+  grade_8_gpa: number;
+  previous_school: string;
+  national_exam_number: string;
+
+  address: {
+    region: string;
+    zone: string;
+    kebele: string;
+    house_no: string;
+  };
+  
+  guardian_name: string;
+  guardian_relation: string;
+  parent_phone: string;
+  personal_email?: string;
+
   grade: string;
   section: string;
   roll_number: string;
-  parent_phone: string;
-  address: string;
+  status: "active" | "withdrawn" | "pending";
   enrolled_date: string;
-  status?: "pending" | "active";
-  personal_email?: string;
+  avatar?: string;
   credentials_issued_at?: string | null;
+  age?: number;
 }
 
 export interface Teacher {
@@ -28,6 +46,10 @@ export interface Teacher {
   subjects: string[];
   assigned_grade: string;
   assigned_section: string;
+  avatar?: string;
+  department?: string;
+  experience?: number;
+  status?: "Active" | "On Leave" | "Inactive";
 }
 
 export interface Subject {
@@ -36,6 +58,9 @@ export interface Subject {
   code: string;
   grade: string;
   teacher_id: string;
+  department?: string;
+  periodsPerWeek?: number;
+  description?: string;
 }
 
 export interface Enrollment {
@@ -71,11 +96,12 @@ export interface Mark {
 export interface User {
   id: string;
   username: string;
-  role: "admin" | "teacher" | "student";
+  role: "admin" | "teacher" | "student" | "registrar";
   name: string;
   email?: string;
   ref_id: string;
   avatar?: string;
+  verificationQuestions?: {question: string, answer: string}[];
 }
 
 export interface AppState {
@@ -95,17 +121,30 @@ export interface AppState {
 export interface ApiStudent {
   _id: string;
   firstName: string;
+  middleName: string;
   lastName: string;
-  age: number;
+  dateOfBirth: string;
   gender: "Male" | "Female";
+  faydaId: string;
+  grade8GPA: number;
+  previousSchool: string;
+  nationalExamNumber: string;
+  address: {
+    region: string;
+    zone: string;
+    kebele: string;
+    houseNo: string;
+  };
+  guardianName: string;
+  guardianRelation: string;
+  parentPhone: string;
+  personalEmail?: string;
   grade: string;
   section: string;
   rollNumber: string;
-  parentPhone: string;
-  address: string;
+  status: "active" | "withdrawn" | "pending";
   enrolledDate: string;
-  status?: "pending" | "active";
-  personalEmail?: string;
+  avatar?: string;
   credentialsIssuedAt?: string | null;
 }
 
@@ -118,45 +157,17 @@ export interface ApiTeacher {
   subjects: Array<{ _id: string } | string>;
   assignedGrade: string;
   assignedSection: string;
-}
-
-export interface ApiSubject {
-  _id: string;
-  name: string;
-  code: string;
-  grade: string;
-  teacherId: { _id: string } | string;
-}
-
-export interface ApiMark {
-  _id: string;
-  studentId: { _id: string } | string;
-  subjectId: { _id: string } | string;
-  academicYear: string;
-  semester: number;
-  assessmentType: "quiz" | "midterm" | "final" | "assignment";
-  score: number;
-  maxScore: number;
-  remarks: string;
-  enteredBy: string;
-}
-
-export interface ApiAttendance {
-  _id: string;
-  studentId: { _id: string } | string;
-  subjectId: { _id: string } | string;
-  date: string;
-  status: "present" | "absent" | "late" | "excused";
-  recordedBy: string;
+  avatar?: string;
 }
 
 export interface ApiUser {
   _id: string;
   username: string;
-  role: "admin" | "teacher" | "student";
+  role: "admin" | "teacher" | "student" | "registrar";
   name: string;
   email?: string;
   refId?: string;
+  avatar?: string;
 }
 
 export interface LoginResponse {
@@ -164,6 +175,32 @@ export interface LoginResponse {
   user: ApiUser;
 }
 
-export interface ApiError {
-  message: string;
+export interface ApiSubject {
+  _id: string;
+  name: string;
+  code: string;
+  grade: string;
+  teacherId: string | { _id: string };
+}
+
+export interface ApiMark {
+  _id: string;
+  studentId: string | { _id: string };
+  subjectId: string | { _id: string };
+  academicYear: string;
+  semester: number;
+  assessmentType: "quiz" | "midterm" | "final" | "assignment";
+  score: number;
+  maxScore?: number;
+  remarks?: string;
+  enteredBy: string;
+}
+
+export interface ApiAttendance {
+  _id: string;
+  studentId: string | { _id: string };
+  subjectId: string | { _id: string };
+  date: string;
+  status: "present" | "absent" | "late" | "excused";
+  recordedBy: string;
 }

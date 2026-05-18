@@ -34,8 +34,12 @@ function StudentDashboard() {
       <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-8 text-white shadow-xl shadow-emerald-500/20 relative overflow-hidden animate-fade-scale group">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-700 group-hover:scale-125"></div>
         <div className="relative z-10 flex items-center gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-3xl font-black shadow-inner group-hover:rotate-6 transition-transform">
-            {student?.first_name?.[0] || "S"}
+          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-3xl font-black shadow-inner group-hover:rotate-6 transition-transform overflow-hidden">
+            {currentUser?.avatar ? (
+              <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+            ) : (
+              student?.first_name?.[0] || "S"
+            )}
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-black">{student?.first_name} {student?.last_name}</h2>
@@ -83,6 +87,38 @@ function StudentDashboard() {
             <div>
               <div className="text-2xl font-black text-slate-900 leading-none">{myAttendance.length}</div>
               <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Records</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Academic Term Progress (Adapted for High School) */}
+      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-3xl border border-indigo-100 p-6 shadow-sm animate-fade-up">
+        <h3 className="text-sm font-extrabold text-indigo-900 mb-4 flex items-center gap-2">
+          <Award size={18} className="text-indigo-600" />
+          Current Term Progress
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
+            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Academic Term</div>
+            <div className="font-black text-slate-800 text-lg">Fall Semester</div>
+          </div>
+          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
+            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Unweighted GPA</div>
+            <div className="font-black text-slate-800 text-lg">
+              {avgScore > 0 ? ((avgScore / 100) * 4.0).toFixed(2) : "N/A"}
+            </div>
+          </div>
+          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
+            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Credits Earned</div>
+            <div className="font-black text-slate-800 text-lg">
+              {myMarks.length > 0 ? myMarks.length * 3 : 0}
+            </div>
+          </div>
+          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
+            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Academic Status</div>
+            <div className="font-black text-slate-800 text-lg">
+              {avgScore >= 90 ? "Honor Roll 🌟" : avgScore >= 70 ? "Good Standing" : "At Risk"}
             </div>
           </div>
         </div>
@@ -143,22 +179,46 @@ function StudentDashboard() {
         )}
       </div>
 
-      {/* Profile Details */}
+      {/* Profile & Account Details */}
       {student && (
-        <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all animate-fade-up">
-          <h3 className="text-base font-extrabold text-slate-900 mb-5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-              <User size={16} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all">
+            <h3 className="text-base font-extrabold text-slate-900 mb-5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
+                <User size={16} />
+              </div>
+              Personal Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Full Name</span><div className="font-black text-slate-900 mt-1">{student.first_name} {student.last_name}</div></div>
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Age</span><div className="font-black text-slate-900 mt-1">{student.age}</div></div>
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Grade & Section</span><div className="font-black text-slate-900 mt-1">{student.grade}{student.section}</div></div>
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Roll Number</span><div className="font-black text-slate-900 mt-1 font-mono">{student.roll_number}</div></div>
             </div>
-            Personal Information
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Full Name</span><div className="font-black text-slate-900 mt-1">{student.first_name} {student.last_name}</div></div>
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Age</span><div className="font-black text-slate-900 mt-1">{student.age}</div></div>
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Gender</span><div className="font-black text-slate-900 mt-1">{student.gender}</div></div>
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Grade & Section</span><div className="font-black text-slate-900 mt-1">{student.grade}{student.section}</div></div>
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Roll Number</span><div className="font-black text-slate-900 mt-1 font-mono">{student.roll_number}</div></div>
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100"><span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Parent Phone</span><div className="font-black text-slate-900 mt-1 font-mono">{student.parent_phone}</div></div>
+          </div>
+          
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all">
+            <h3 className="text-base font-extrabold text-slate-900 mb-5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                <BookOpen size={16} />
+              </div>
+              School Account
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <span className="text-slate-500 text-xs font-bold uppercase">Student Email</span>
+                <span className="font-black text-slate-900 text-sm">{currentUser?.email || "student@school.edu"}</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <span className="text-slate-500 text-xs font-bold uppercase">Parent Contact</span>
+                <span className="font-black text-slate-900 text-sm">{student.parent_phone}</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <span className="text-slate-500 text-xs font-bold uppercase">Password</span>
+                <span className="font-bold text-emerald-600 text-xs bg-emerald-100 px-2 py-1 rounded-lg">Hidden for Security</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-4 text-center">Contact the registrar office if you need to update your password.</p>
           </div>
         </div>
       )}

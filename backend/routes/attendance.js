@@ -36,6 +36,40 @@ router.post("/bulk", protect, authorize("admin", "teacher"), async (req, res) =>
       return res.status(400).json({ message: "Provide an array of attendance records" });
     }
 
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const Student = require("../models/Student");
+      const Subject = require("../models/Subject");
+
+      const teacher = await Teacher.findById(req.user.refId);
+      if (!teacher) return res.status(403).json({ message: "Teacher not found" });
+
+      const studentIds = [...new Set(records.map(r => r.studentId))];
+      const subjectIds = [...new Set(records.map(r => r.subjectId))];
+      
+      const students = await Student.find({ _id: { $in: studentIds } });
+      const subjects = await Subject.find({ _id: { $in: subjectIds } });
+
+      const studentMap = new Map(students.map(s => [s._id.toString(), s]));
+      const subjectMap = new Map(subjects.map(s => [s._id.toString(), s]));
+
+      for (const r of records) {
+        const student = studentMap.get(r.studentId.toString());
+        const subject = subjectMap.get(r.subjectId.toString());
+
+        if (!student || !subject) {
+          return res.status(404).json({ message: "Invalid student or subject reference in bulk request" });
+        }
+
+        const isSubjectTeacher = subject.teacherId && subject.teacherId.toString() === teacher._id.toString();
+        const isHomeroomTeacher = student.grade === teacher.assignedGrade && student.section === teacher.assignedSection;
+
+        if (!isSubjectTeacher && !isHomeroomTeacher) {
+          return res.status(403).json({ message: "Access denied. You are not authorized to submit attendance for all included students/subjects." });
+        }
+      }
+    }
+
     const results = [];
     for (const r of records) {
       const record = await Attendance.findOneAndUpdate(
