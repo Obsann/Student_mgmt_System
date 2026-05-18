@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Plus, Search, Upload, Info, MapPin, Save, Pencil, Trash2, BookOpen } from "lucide-react";
+import { Plus, Search, Upload, Info, MapPin, Save, Pencil, Trash2, BookOpen, Mail } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import { useToast } from "../../contexts/ToastContext";
 import { api } from "../../services/api";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
 import Pagination from "../../components/Pagination";
 import FormField from "../../components/FormField";
-import type { Student } from "../../types";
+import type { Student, User } from "../../types";
 
 export default function ManageStudents() {
   const { state, addStudent, updateStudent, deleteStudent, loadAllData } = useApp();
@@ -29,7 +29,7 @@ export default function ManageStudents() {
     date_of_birth: "", gender: "Male" as "Male" | "Female",
     fayda_id: "", grade_8_gpa: 0, previous_school: "", national_exam_number: "",
     region: "Addis Ababa", zone: "", kebele: "", house_no: "",
-    guardian_name: "", guardian_relation: "", parent_phone: "",
+    guardian_name: "", guardian_relation: "", parent_phone: "", personal_email: "",
     grade: "9", section: "A", roll_number: "", status: "active" as "active" | "withdrawn" | "pending"
   });
 
@@ -71,7 +71,7 @@ export default function ManageStudents() {
       date_of_birth: "", gender: "Male",
       fayda_id: "", grade_8_gpa: 0, previous_school: "", national_exam_number: "",
       region: "Addis Ababa", zone: "", kebele: "", house_no: "",
-      guardian_name: "", guardian_relation: "", parent_phone: "",
+      guardian_name: "", guardian_relation: "", parent_phone: "", personal_email: "",
       grade: "9", section: "A", roll_number: "", status: "active"
     });
     setFormErrors({});
@@ -97,6 +97,7 @@ export default function ManageStudents() {
       guardian_name: s.guardian_name,
       guardian_relation: s.guardian_relation,
       parent_phone: s.parent_phone,
+      personal_email: s.personal_email || "",
       grade: s.grade,
       section: s.section,
       roll_number: s.roll_number,
@@ -136,9 +137,10 @@ export default function ManageStudents() {
             guardian_name: parts[13],
             guardian_relation: parts[14],
             parent_phone: parts[15],
-            grade: parts[16],
-            section: parts[17],
-            roll_number: parts[18],
+            personal_email: parts[16] || "",
+            grade: parts[17],
+            section: parts[18],
+            roll_number: parts[19],
             status: "active" as const,
             enrolled_date: new Date().toISOString()
           };
@@ -370,10 +372,13 @@ export default function ManageStudents() {
                 <FormField label="Kebele" value={form.kebele} onChange={(e) => setForm({ ...form, kebele: e.target.value })} />
                 <FormField label="House No" value={form.house_no} onChange={(e) => setForm({ ...form, house_no: e.target.value })} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField label="Guardian Name" value={form.guardian_name} onChange={(e) => setForm({ ...form, guardian_name: e.target.value })} />
                 <FormField label="Relation" value={form.guardian_relation} onChange={(e) => setForm({ ...form, guardian_relation: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField label="Phone" value={form.parent_phone} onChange={(e) => setForm({ ...form, parent_phone: e.target.value })} />
+                <FormField label="Personal Email" type="email" value={form.personal_email} onChange={(e) => setForm({ ...form, personal_email: e.target.value })} />
               </div>
 
             </div>
@@ -415,6 +420,7 @@ export default function ManageStudents() {
                 {[
                   ['Fayda ID', viewStudent.fayda_id], 
                   ['Phone', viewStudent.parent_phone || 'N/A'], 
+                  ['Email', viewStudent.personal_email || 'N/A'],
                   ['Age', viewStudent.date_of_birth ? `${new Date().getFullYear() - new Date(viewStudent.date_of_birth).getFullYear()} years` : 'N/A'], 
                   ['Gender', viewStudent.gender], 
                   ['Guardian', viewStudent.guardian_name || 'N/A'], 
@@ -427,12 +433,27 @@ export default function ManageStudents() {
                   </div>
                 ))}
               </div>
-              <div className="mt-6 flex gap-3">
-                <button onClick={() => { setViewStudent(null); openEdit(viewStudent); }} className="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                  <Pencil size={16} /> Edit Student
-                </button>
-                <button onClick={() => { setViewStudent(null); handleDelete(viewStudent); }} className="flex-1 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                  <Trash2 size={16} /> Delete
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <button onClick={() => { setViewStudent(null); openEdit(viewStudent); }} className="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <Pencil size={16} /> Edit Student
+                  </button>
+                  <button onClick={() => { setViewStudent(null); handleDelete(viewStudent); }} className="flex-1 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <Trash2 size={16} /> Delete
+                  </button>
+                </div>
+                <button 
+                  onClick={async () => {
+                    try {
+                      await api.issueCredentials(viewStudent.id, viewStudent.personal_email || "");
+                      addToast({ type: "success", title: "Credentials Sent", message: "New credentials have been emailed to the student." });
+                    } catch (err: any) {
+                      addToast({ type: "error", title: "Error", message: err.message || "Failed to issue credentials" });
+                    }
+                  }} 
+                  className="w-full px-4 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <Mail size={16} /> Resend Login Credentials
                 </button>
               </div>
             </div>

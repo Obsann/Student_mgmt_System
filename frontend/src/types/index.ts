@@ -96,9 +96,10 @@ export interface Mark {
 export interface User {
   id: string;
   username: string;
-  role: "admin" | "teacher" | "student" | "registrar";
+  role: "admin" | "teacher" | "student";
   name: string;
   email?: string;
+  recoveryEmail?: string;
   ref_id: string;
   avatar?: string;
   verificationQuestions?: {question: string, answer: string}[];
@@ -163,11 +164,13 @@ export interface ApiTeacher {
 export interface ApiUser {
   _id: string;
   username: string;
-  role: "admin" | "teacher" | "student" | "registrar";
+  role: "admin" | "teacher" | "student";
   name: string;
   email?: string;
+  recoveryEmail?: string;
   refId?: string;
   avatar?: string;
+  verificationQuestions?: {question: string, answer: string}[];
 }
 
 export interface LoginResponse {

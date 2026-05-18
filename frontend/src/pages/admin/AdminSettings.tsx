@@ -17,6 +17,7 @@ export default function AdminSettings() {
     try {
       await api.updateSetting("academicYear", settings.academicYear);
       await api.updateSetting("currentSemester", settings.currentSemester);
+      await api.updateSetting("registrationOpen", settings.registrationOpen);
       addToast({ type: "success", title: "Success", message: "System settings updated." });
     } catch (e: unknown) {
       addToast({ type: "error", title: "Error", message: e instanceof Error ? e.message : "Failed to save settings." });
@@ -76,6 +77,24 @@ export default function AdminSettings() {
               <option value={2}>Semester 2</option>
             </select>
           </div>
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Registration Window</label>
+            <div className="flex items-center justify-between p-3 rounded-2xl border border-slate-100 bg-slate-50">
+              <div>
+                <p className="text-sm font-bold text-slate-900">Student Enrollment</p>
+                <p className="text-xs text-slate-500 font-medium">Allow teachers to register students</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={settings.registrationOpen === true || settings.registrationOpen === "true"} 
+                  onChange={(e) => setSettings({ ...settings, registrationOpen: e.target.checked })} 
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+          </div>
         </div>
         <button
           onClick={handleSave}
@@ -83,7 +102,7 @@ export default function AdminSettings() {
           className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5 disabled:opacity-50 h-[46px]"
         >
           {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />}
-          Save Term Configuration
+          Save Configuration
         </button>
       </div>
 

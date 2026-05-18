@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState({
     name: currentUser?.name || "",
     email: currentUser?.email || "Not Provided",
+    recoveryEmail: (currentUser as any)?.recoveryEmail || "",
     phone: "+251910000000",
     address: "Kera, Addis Ababa",
     bio: "Passionate about education and student success.",
@@ -38,6 +39,7 @@ export default function ProfilePage() {
       setProfileData({
         name: currentUser.name || "",
         email: currentUser.email || "Not Provided",
+        recoveryEmail: (currentUser as any).recoveryEmail || "",
         phone: "+251910000000",
         address: "Kera, Addis Ababa",
         bio: "Passionate about education and student success.",
@@ -80,7 +82,8 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append("name", profileData.name);
-      formData.append("email", profileData.email);
+      if (profileData.email !== "Not Provided") formData.append("email", profileData.email);
+      if (profileData.recoveryEmail) formData.append("recoveryEmail", profileData.recoveryEmail);
       
       // Send verification questions only if they have answers
       const validQuestions = verificationQuestions.filter(q => q.question.trim() && q.answer.trim());
@@ -122,7 +125,6 @@ export default function ProfilePage() {
   const roleStyles: Record<string, { bg: string, text: string, border: string, icon: any }> = {
     admin: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200", icon: Shield },
     teacher: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", icon: User },
-    registrar: { bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200", icon: ShieldAlert },
     student: { bg: "bg-green-50", text: "text-green-600", border: "border-green-200", icon: GraduationCap }
   };
 
@@ -236,6 +238,20 @@ export default function ProfilePage() {
                   <div className="flex-1">
                     <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Username</p>
                     <p className="text-sm font-bold text-slate-900">{currentUser.username}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
+                  <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500 shadow-sm">
+                    <Mail size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Recovery Email</p>
+                    {isEditing ? (
+                      <input type="email" value={profileData.recoveryEmail} onChange={e => setProfileData({...profileData, recoveryEmail: e.target.value})} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="recovery@example.com" />
+                    ) : (
+                      <p className="text-sm font-bold text-slate-900">{profileData.recoveryEmail || "Not Set"}</p>
+                    )}
                   </div>
                 </div>
 

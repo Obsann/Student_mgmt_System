@@ -103,16 +103,6 @@ async function seed() {
     });
     console.log("✓ Admin created");
 
-    // 2. Registrar user
-    await User.create({
-      username: "registrar",
-      password: "registrar123",
-      role: "registrar",
-      name: "W/ro Aster Kassa",
-      email: "registrar@keraschool.et",
-    });
-    console.log("✓ Registrar created");
-
     // 3. Teachers
     const createdTeachers = [];
     for (const t of teachersData) {
@@ -165,12 +155,12 @@ async function seed() {
     await Settings.create({ key: "academicYear", value: "2025/2026" });
     await Settings.create({ key: "currentSemester", value: 1 });
     await Settings.create({ key: "schoolName", value: "Kera Secondary School" });
+    await Settings.create({ key: "registrationOpen", value: true });
 
     console.log("\n═══════════════════════════════════════════════════════");
     console.log("  SEED COMPLETE — New Module Ready");
     console.log("═══════════════════════════════════════════════════════");
     console.log("  Admin    :  admin@keraschool.et / admin123");
-    console.log("  Registrar:  registrar           / registrar123");
     console.log("  Teacher  :  ephrem.worku        / teacher123");
     console.log("═══════════════════════════════════════════════════════\n");
 

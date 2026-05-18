@@ -41,20 +41,11 @@ function Avatar({ name, src, size = 'md', className = '' }: { name?: string; src
   );
 }
 
-export default function Layout({ navItems, roleLabel, roleColor = "indigo" }: LayoutProps) {
-  const colorMap: Record<string, string> = {
-    red: "from-red-500 to-rose-600 shadow-red-200 text-red-600 bg-red-50 border-red-100",
-    blue: "from-blue-500 to-indigo-600 shadow-blue-200 text-blue-600 bg-blue-50 border-blue-100",
-    green: "from-green-500 to-emerald-600 shadow-emerald-200 text-green-600 bg-green-50 border-green-100",
-    purple: "from-purple-500 to-indigo-600 shadow-purple-200 text-purple-600 bg-purple-50 border-purple-100",
-    indigo: "from-indigo-500 to-blue-600 shadow-indigo-200 text-indigo-600 bg-indigo-50 border-indigo-100",
-  };
-
-  const activeColor = colorMap[roleColor] || colorMap.indigo;
-  const gradientClass = activeColor.split(" ").slice(0, 2).join(" ");
-  const textClass = activeColor.split(" ")[3];
-  const bgClass = activeColor.split(" ")[4];
-  const borderClass = activeColor.split(" ")[5];
+export default function Layout({ navItems, roleLabel }: LayoutProps) {
+  const gradientClass = "from-indigo-600 to-indigo-700";
+  const textClass = "text-indigo-600";
+  const bgClass = "bg-indigo-50";
+  const borderClass = "border-indigo-100";
 
   const { currentUser, logout } = useApp();
   const location = useLocation();

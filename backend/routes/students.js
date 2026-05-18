@@ -1,6 +1,7 @@
 const express = require("express");
 const Student = require("../models/Student");
 const User = require("../models/User");
+const Settings = require("../models/Settings");
 const AuditLog = require("../models/AuditLog");
 const { protect, authorize } = require("../middleware/auth");
 const { sendCredentialsEmail } = require("../utils/mailer");
@@ -84,15 +85,17 @@ router.get("/:id", protect, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/students — create (Registrar/Admin only)
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
+router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
   try {
     const isAdmin = req.user.role === "admin";
-    const isRegistrar = req.user.role === "registrar";
     const isTeacher = req.user.role === "teacher";
 
-    // Teachers can request enrollment, but only Registrars/Admins have "write" authority for full records
-    if (isTeacher && req.body.faydaId) {
-       // Optional: limit teachers to simpler requests if desired
+    // Registration window check — teachers can only register when window is open
+    if (isTeacher) {
+      const regSetting = await Settings.findOne({ key: "registrationOpen" });
+      if (!regSetting || regSetting.value === false || regSetting.value === "false") {
+        return res.status(403).json({ message: "Registration window is currently closed. Contact admin." });
+      }
     }
 
     // 1. Uniqueness Checks
@@ -119,7 +122,7 @@ router.post("/", protect, authorize("admin", "registrar", "teacher"), async (req
     }
 
     // Determine status based on role (Teacher now acts as Registrar)
-    const canActivate = isAdmin || isRegistrar || isTeacher;
+    const canActivate = isAdmin || isTeacher;
 
     const studentData = {
       ...req.body,
@@ -143,6 +146,10 @@ router.post("/", protect, authorize("admin", "registrar", "teacher"), async (req
           name: `${req.body.firstName} ${req.body.lastName}`,
           email,
           refId: student._id,
+          verificationQuestions: [
+            { question: "What is your roll number?", answer: student.rollNumber || "" },
+            { question: "What is your guardian's name?", answer: req.body.guardianName || "" }
+          ],
         });
 
         // Send the email
@@ -185,7 +192,7 @@ router.post("/", protect, authorize("admin", "registrar", "teacher"), async (req
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/students/:id/issue-credentials — Admin/Teacher approves + emails credentials
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/:id/issue-credentials", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
+router.post("/:id/issue-credentials", protect, authorize("admin", "teacher"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
@@ -266,40 +273,70 @@ router.post("/bulk", protect, authorize("admin"), async (req, res) => {
     }
 
     const created = [];
-    for (const s of studentList) {
-      const student = await Student.create({ ...s, status: "active" });
-      const username = generateUsername(s.firstName, s.lastName, student._id.toString().slice(-3));
-      const password = generatePassword();
-      await User.create({
-        username,
-        password,
-        role: "student",
-        name: `${s.firstName} ${s.lastName}`,
-        email: s.personalEmail || `${username}@keraschool.et`,
-        refId: student._id,
-      });
-      created.push(student);
+    const errors = [];
+
+    for (let i = 0; i < studentList.length; i++) {
+      const s = studentList[i];
+      try {
+        // Validate required fields
+        if (!s.firstName || !s.lastName || !s.faydaId || !s.grade || !s.section) {
+          errors.push({ row: i + 1, message: `Missing required fields (firstName, lastName, faydaId, grade, section)` });
+          continue;
+        }
+        
+        // Check for duplicate faydaId
+        const existingFayda = await Student.findOne({ faydaId: s.faydaId });
+        if (existingFayda) {
+          errors.push({ row: i + 1, message: `Fayda ID ${s.faydaId} already exists` });
+          continue;
+        }
+
+        const student = await Student.create({ ...s, status: "active", addedBy: req.user._id });
+        const username = generateUsername(s.firstName, s.lastName, student._id.toString().slice(-3));
+        const password = generatePassword();
+        await User.create({
+          username,
+          password,
+          role: "student",
+          name: `${s.firstName} ${s.lastName}`,
+          email: s.personalEmail || `${username}@keraschool.et`,
+          refId: student._id,
+          verificationQuestions: [
+            { question: "What is your roll number?", answer: s.rollNumber || "" },
+            { question: "What is your guardian's name?", answer: s.guardianName || "" }
+          ],
+        });
+        created.push(student);
+      } catch (rowErr) {
+        errors.push({ row: i + 1, message: rowErr.message || "Unknown error" });
+      }
     }
 
-    await AuditLog.create({
-      userId: req.user._id,
-      userName: req.user.name,
-      action: "BULK_CREATE",
-      entity: "Student",
-      details: `Bulk imported ${created.length} students`,
-      ipAddress: req.ip,
-    });
+    if (created.length > 0) {
+      await AuditLog.create({
+        userId: req.user._id,
+        userName: req.user.name,
+        action: "BULK_CREATE",
+        entity: "Student",
+        details: `Bulk imported ${created.length} students (${errors.length} errors)`,
+        ipAddress: req.ip,
+      });
+    }
 
-    res.status(201).json({ message: `${created.length} students imported`, students: created });
+    if (created.length === 0 && errors.length > 0) {
+      return res.status(400).json({ message: `All ${errors.length} rows failed`, errors });
+    }
+
+    res.status(201).json({ message: `${created.length} students imported${errors.length > 0 ? `, ${errors.length} rows had errors` : ''}`, students: created, errors });
   } catch (err) {
-    res.status(400).json({ message: "Bulk import error" });
+    res.status(400).json({ message: err.message || "Bulk import error" });
   }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/students/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.put("/:id", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
+router.put("/:id", protect, authorize("admin", "teacher"), async (req, res) => {
   try {
     const studentToUpdate = await Student.findById(req.params.id);
     if (!studentToUpdate) return res.status(404).json({ message: "Student not found" });
@@ -346,7 +383,7 @@ router.put("/:id", protect, authorize("admin", "registrar", "teacher"), async (r
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/students/:id
 // ─────────────────────────────────────────────────────────────────────────────
-router.delete("/:id", protect, authorize("admin", "registrar", "teacher"), async (req, res) => {
+router.delete("/:id", protect, authorize("admin", "teacher"), async (req, res) => {
   try {
     const studentToDelete = await Student.findById(req.params.id);
     if (!studentToDelete) return res.status(404).json({ message: "Student not found" });

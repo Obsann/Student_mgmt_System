@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, UserCheck, BookOpen, BarChart3,
-  ClipboardCheck, Award, UserPlus,
+  ClipboardCheck, Award, UserPlus, Settings,
 } from "lucide-react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./contexts/AppContext";
@@ -13,7 +13,6 @@ import ToastContainer from "./components/ToastContainer";
 import AdminPortal from "./pages/AdminPortal";
 import TeacherPortal from "./pages/TeacherPortal";
 import StudentPortal from "./pages/StudentPortal";
-import RegistrarPortal from "./pages/RegistrarPortal";
 
 function AdminRoutes() {
   const navItems = [
@@ -24,10 +23,11 @@ function AdminRoutes() {
     { id: "subjects", path: "/subjects", label: "Subjects", icon: <BookOpen size={18} /> },
     { id: "reports", path: "/reports", label: "Reports", icon: <BarChart3 size={18} /> },
     { id: "audit-logs", path: "/audit-logs", label: "Audit Logs", icon: <ClipboardCheck size={18} /> },
+    { id: "settings", path: "/settings", label: "Settings", icon: <Settings size={18} /> },
   ];
   return (
     <Routes>
-      <Route element={<Layout navItems={navItems} roleLabel="Admin" roleColor="red" />}>
+      <Route element={<Layout navItems={navItems} roleLabel="Admin" />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<AdminPortal activePage="dashboard" />} />
         <Route path="/pending-enrollments" element={<AdminPortal activePage="pending-enrollments" />} />
@@ -36,6 +36,7 @@ function AdminRoutes() {
         <Route path="/subjects" element={<AdminPortal activePage="subjects" />} />
         <Route path="/reports" element={<AdminPortal activePage="reports" />} />
         <Route path="/audit-logs" element={<AdminPortal activePage="audit-logs" />} />
+        <Route path="/settings" element={<AdminPortal activePage="settings" />} />
         <Route path="/profile" element={<AdminPortal activePage="profile" />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
@@ -53,7 +54,7 @@ function TeacherRoutes() {
   ];
   return (
     <Routes>
-      <Route element={<Layout navItems={navItems} roleLabel="Teacher" roleColor="blue" />}>
+      <Route element={<Layout navItems={navItems} roleLabel="Teacher" />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<TeacherPortal activePage="dashboard" />} />
         <Route path="/attendance" element={<TeacherPortal activePage="attendance" />} />
@@ -61,26 +62,6 @@ function TeacherRoutes() {
         <Route path="/students" element={<TeacherPortal activePage="students" />} />
         <Route path="/register" element={<TeacherPortal activePage="register" />} />
         <Route path="/profile" element={<TeacherPortal activePage="profile" />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Route>
-    </Routes>
-  );
-}
-
-function RegistrarRoutes() {
-  const navItems = [
-    { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
-    { id: "register", path: "/register", label: "Registration", icon: <UserPlus size={18} /> },
-    { id: "students", path: "/students", label: "Records", icon: <Users size={18} /> },
-  ];
-  return (
-    <Routes>
-      <Route element={<Layout navItems={navItems} roleLabel="Registrar" roleColor="purple" />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<RegistrarPortal activePage="dashboard" />} />
-        <Route path="/register" element={<RegistrarPortal activePage="register" />} />
-        <Route path="/students" element={<RegistrarPortal activePage="students" />} />
-        <Route path="/profile" element={<RegistrarPortal activePage="profile" />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
@@ -95,7 +76,7 @@ function StudentRoutes() {
   ];
   return (
     <Routes>
-      <Route element={<Layout navItems={navItems} roleLabel="Student" roleColor="green" />}>
+      <Route element={<Layout navItems={navItems} roleLabel="Student" />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<StudentPortal activePage="dashboard" />} />
         <Route path="/marks" element={<StudentPortal activePage="marks" />} />
@@ -123,7 +104,6 @@ function AppContent() {
 
   if (currentUser.role === "admin") return <AdminRoutes />;
   if (currentUser.role === "teacher") return <TeacherRoutes />;
-  if (currentUser.role === "registrar") return <RegistrarRoutes />;
   return <StudentRoutes />;
 }
 

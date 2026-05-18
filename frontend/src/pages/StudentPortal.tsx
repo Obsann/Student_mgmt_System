@@ -218,7 +218,7 @@ function StudentDashboard() {
                 <span className="font-bold text-emerald-600 text-xs bg-emerald-100 px-2 py-1 rounded-lg">Hidden for Security</span>
               </div>
             </div>
-            <p className="text-[10px] text-slate-400 mt-4 text-center">Contact the registrar office if you need to update your password.</p>
+            <p className="text-[10px] text-slate-400 mt-4 text-center">Contact your homeroom teacher or the admin if you need to update your password.</p>
           </div>
         </div>
       )}

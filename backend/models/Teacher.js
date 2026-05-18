@@ -9,6 +9,9 @@ const teacherSchema = new mongoose.Schema(
     subjects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Subject" }],
     assignedGrade: { type: String, required: true },
     assignedSection: { type: String, required: true },
+    department: { type: String, default: "General" },
+    experience: { type: Number, default: 0 },
+    status: { type: String, enum: ["Active", "On Leave", "Inactive"], default: "Active" },
     avatar: { type: String, default: "" },
   },
   { timestamps: true }

@@ -176,6 +176,13 @@ export const api = {
       body: JSON.stringify({ username, answers }),
     }),
 
+  adminSendCredentials: (userId: string, email?: string) =>
+    apiFetch<{ message: string; username: string }>(`${API_BASE_URL}/auth/admin/send-credentials/${userId}`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ email }),
+    }),
+
   // Students
   getStudents: async (params: Record<string, string> = {}): Promise<Student[]> => {
     const query = new URLSearchParams(params).toString();
@@ -432,6 +439,7 @@ export const api = {
       guardianName: s.guardian_name,
       guardianRelation: s.guardian_relation,
       parentPhone: s.parent_phone,
+      personalEmail: s.personal_email || "",
       grade: s.grade,
       section: s.section,
       rollNumber: s.roll_number,

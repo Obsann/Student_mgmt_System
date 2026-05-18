@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { UserCheck, Plus, Pencil, Trash2, Search, Save } from "lucide-react";
+import { UserCheck, Plus, Pencil, Trash2, Search, Save, Mail } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
+import { useToast } from "../../contexts/ToastContext";
+import { api } from "../../services/api";
 import EmptyState from "../../components/EmptyState";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
 import FormField from "../../components/FormField";
@@ -8,6 +10,7 @@ import type { Teacher } from "../../types";
 
 export default function ManageTeachers() {
   const { state, addTeacher, updateTeacher, deleteTeacher } = useApp();
+  const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -341,12 +344,27 @@ export default function ManageTeachers() {
                 </div>
               </div>
 
-              <div className="mt-6 flex gap-3">
-                <button onClick={() => { setViewTeacher(null); openEdit(viewTeacher); }} className="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                  <Pencil size={16} /> Edit Teacher
-                </button>
-                <button onClick={() => { setViewTeacher(null); handleDelete(viewTeacher); }} className="flex-1 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                  <Trash2 size={16} /> Delete
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <button onClick={() => { setViewTeacher(null); openEdit(viewTeacher); }} className="flex-1 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <Pencil size={16} /> Edit Teacher
+                  </button>
+                  <button onClick={() => { setViewTeacher(null); handleDelete(viewTeacher); }} className="flex-1 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <Trash2 size={16} /> Delete
+                  </button>
+                </div>
+                <button 
+                  onClick={async () => {
+                    try {
+                      await api.adminSendCredentials(viewTeacher.id, viewTeacher.email);
+                      addToast({ type: "success", title: "Credentials Sent", message: "New credentials have been emailed to the teacher." });
+                    } catch (err: any) {
+                      addToast({ type: "error", title: "Error", message: err.message || "Failed to resend credentials" });
+                    }
+                  }} 
+                  className="w-full px-4 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <Mail size={16} /> Resend Login Credentials
                 </button>
               </div>
             </div>

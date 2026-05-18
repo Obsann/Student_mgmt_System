@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User, BookOpen, MapPin, ShieldAlert, ChevronRight, ChevronLeft, Save, Loader2, CheckCircle2 } from "lucide-react";
+import { User, BookOpen, MapPin, ShieldAlert, ChevronRight, ChevronLeft, Save, Loader2, CheckCircle2, Lock } from "lucide-react";
 import { api } from "../services/api";
 import { useApp } from "../contexts/AppContext";
+import { useEffect } from "react";
 
 const registrationSchema = z.object({
   // Step 1: Personal
@@ -41,10 +42,24 @@ export default function StudentRegistrationForm() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isWindowOpen, setIsWindowOpen] = useState(true);
+  const [checkingWindow, setCheckingWindow] = useState(true);
+
   // Get teacher info if role is teacher
   const teacher = currentUser?.role === "teacher" 
     ? state.teachers.find(t => t.id === currentUser.ref_id) 
     : null;
+
+  useEffect(() => {
+    if (currentUser?.role === "teacher") {
+      api.getSettings().then(settings => {
+        setIsWindowOpen(settings.registrationOpen === true || settings.registrationOpen === "true");
+        setCheckingWindow(false);
+      }).catch(() => setCheckingWindow(false));
+    } else {
+      setCheckingWindow(false);
+    }
+  }, [currentUser]);
 
   const { register, handleSubmit, formState: { errors }, trigger } = useForm({
     resolver: zodResolver(registrationSchema),
@@ -116,6 +131,26 @@ export default function StudentRegistrationForm() {
         >
           Register Another Student
         </button>
+      </div>
+    );
+  }
+
+  if (checkingWindow) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-indigo-500 w-10 h-10" />
+      </div>
+    );
+  }
+
+  if (!isWindowOpen && currentUser?.role === "teacher") {
+    return (
+      <div className="max-w-xl mx-auto bg-white rounded-3xl border border-slate-100 p-12 text-center shadow-xl animate-fade-scale">
+        <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Lock size={40} />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Registration is Closed</h2>
+        <p className="text-slate-500 font-medium">The student registration window is currently closed by the administration. Please contact the administrator to open the registration window.</p>
       </div>
     );
   }
