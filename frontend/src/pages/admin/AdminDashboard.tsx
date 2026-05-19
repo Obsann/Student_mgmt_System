@@ -1,4 +1,5 @@
 import { useApp } from "../../contexts/AppContext";
+import { Users, UserCheck, BookOpen, ClipboardList, ShieldCheck, Layers, Activity } from "lucide-react";
 
 export default function AdminDashboard() {
   const { state } = useApp();
@@ -30,18 +31,18 @@ export default function AdminDashboard() {
   ];
 
   const stats = [
-    { label: 'Total Students', value: totalStudents, icon: '👨‍🎓', color: 'from-blue-500 to-blue-600', bg: 'bg-blue-50' },
-    { label: 'Total Teachers', value: totalTeachers, icon: '👩‍🏫', color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Active Subjects', value: totalSubjects, icon: '📚', color: 'from-purple-500 to-purple-600', bg: 'bg-purple-50' },
-    { label: 'Pending Enrollments', value: pendingEnrollments, icon: '📋', color: 'from-amber-500 to-amber-600', bg: 'bg-amber-50' },
-    { label: 'Active Teachers', value: activeTeachers, icon: '✅', color: 'from-teal-500 to-teal-600', bg: 'bg-teal-50' },
-    { label: 'Sections', value: sections.length, icon: '🏫', color: 'from-pink-500 to-pink-600', bg: 'bg-pink-50' },
+    { label: 'Total Students', value: totalStudents, icon: <Users size={20} className="text-blue-600" />, bg: 'bg-slate-100' },
+    { label: 'Total Teachers', value: totalTeachers, icon: <UserCheck size={20} className="text-emerald-600" />, bg: 'bg-slate-100' },
+    { label: 'Active Subjects', value: totalSubjects, icon: <BookOpen size={20} className="text-purple-600" />, bg: 'bg-slate-100' },
+    { label: 'Pending Enrollments', value: pendingEnrollments, icon: <ClipboardList size={20} className="text-amber-600" />, bg: 'bg-slate-100' },
+    { label: 'Active Teachers', value: activeTeachers, icon: <ShieldCheck size={20} className="text-teal-600" />, bg: 'bg-slate-100' },
+    { label: 'Sections', value: sections.length, icon: <Layers size={20} className="text-pink-600" />, bg: 'bg-slate-100' },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl shadow-slate-900/20 group">
+      <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-sm group">
         <div className="absolute right-0 top-0 w-64 h-64 opacity-5 group-hover:rotate-45 transition-transform duration-1000">
           <svg viewBox="0 0 200 200" fill="currentColor"><circle cx="100" cy="100" r="100" /></svg>
         </div>
@@ -50,12 +51,12 @@ export default function AdminDashboard() {
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-4">
-            <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold uppercase tracking-wider backdrop-blur-sm border border-amber-500/20">Admin Panel</span>
-            <span className="px-3 py-1 bg-white/10 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-wider backdrop-blur-sm border border-white/10">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-700">Admin Panel</span>
+            <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-700">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           </div>
-          <h2 className="text-3xl font-black tracking-tight">Welcome, System Administrator! 🔐</h2>
-          <p className="text-slate-300 mt-2 text-sm font-medium max-w-xl leading-relaxed">
-            Kera High School management dashboard. Today you have <span className="text-amber-400 font-bold">{pendingEnrollments} pending enrollment</span> requests and <span className="text-blue-400 font-bold">{todayLogs} system activities</span>.
+          <h2 className="text-3xl font-black tracking-tight flex items-center gap-2">Welcome, System Administrator <ShieldCheck size={28} className="text-slate-400" /></h2>
+          <p className="text-slate-400 mt-2 text-sm font-medium max-w-xl leading-relaxed">
+            Kera High School management dashboard. Today you have <span className="text-slate-200 font-bold">{pendingEnrollments} pending enrollment</span> requests and <span className="text-slate-200 font-bold">{todayLogs} system activities</span>.
           </p>
         </div>
       </div>
@@ -98,13 +99,13 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="bg-emerald-50 rounded-2xl p-4 text-center border border-emerald-100/50">
-                <p className="text-3xl font-black text-emerald-700">{grade9}</p>
-                <p className="text-xs font-bold text-emerald-600 mt-1 uppercase tracking-wider">Grade 9</p>
+              <div className="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
+                <p className="text-3xl font-black text-slate-700">{grade9}</p>
+                <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">Grade 9</p>
               </div>
-              <div className="bg-purple-50 rounded-2xl p-4 text-center border border-purple-100/50">
-                <p className="text-3xl font-black text-purple-700">{grade10}</p>
-                <p className="text-xs font-bold text-purple-600 mt-1 uppercase tracking-wider">Grade 10</p>
+              <div className="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
+                <p className="text-3xl font-black text-slate-700">{grade10}</p>
+                <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">Grade 10</p>
               </div>
             </div>
           </div>
@@ -148,20 +149,14 @@ export default function AdminDashboard() {
             {recentLogs.map(log => (
               <div key={log.id} className="p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors border border-slate-100/50">
                 <div className="flex items-start gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
-                    log.category === 'Student' ? 'bg-blue-100 text-blue-600' :
-                    log.category === 'Teacher' ? 'bg-emerald-100 text-emerald-600' :
-                    log.category === 'Marks' ? 'bg-purple-100 text-purple-600' :
-                    log.category === 'System' ? 'bg-amber-100 text-amber-600' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {log.category === 'System' ? '⚙️' : log.category === 'Marks' ? '📝' : log.category === 'Teacher' ? '👩‍🏫' : '👨‍🎓'}
+                  <div className="p-2 bg-slate-200 text-slate-600 rounded-lg">
+                    <Activity size={16} />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1">
                     <p className="text-sm font-bold text-slate-900">{log.user}</p>
-                    <p className="text-xs font-medium text-slate-500 mt-1 line-clamp-2">{log.details}</p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">{log.timestamp}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{log.details}</p>
                   </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{log.timestamp}</span>
                 </div>
               </div>
             ))}

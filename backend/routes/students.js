@@ -25,11 +25,20 @@ function generatePassword(length = 10) {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get("/", protect, async (req, res) => {
   try {
-    const { grade, section, status } = req.query;
-    const filter = {};
-    if (grade) filter.grade = grade;
-    if (section) filter.section = section;
-    if (status) filter.status = status;           // ?status=pending for admin pending view
+    const { grade, section, status, search } = req.query;
+    const filter = { isDeleted: { $ne: true } };
+    
+    if (grade && grade !== "All") filter.grade = grade;
+    if (section && section !== "All") filter.section = section;
+    if (status && status !== "All") filter.status = status;
+
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { faydaId: { $regex: search, $options: "i" } }
+      ];
+    }
 
     // Teachers can only see their assigned class (and all statuses for enrollment review)
     if (req.user.role === "teacher") {
@@ -47,8 +56,22 @@ router.get("/", protect, async (req, res) => {
       return res.json([student]);
     }
 
-    const students = await Student.find(filter).sort({ status: -1, grade: 1, section: 1, rollNumber: 1 });
-    res.json(students);
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50; // default 50
+    const skip = (page - 1) * limit;
+
+    const total = await Student.countDocuments(filter);
+    const students = await Student.find(filter)
+      .sort({ status: -1, grade: 1, section: 1, rollNumber: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      data: students,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -396,10 +419,10 @@ router.delete("/:id", protect, authorize("admin", "teacher"), async (req, res) =
       }
     }
 
-    const student = await Student.findByIdAndDelete(req.params.id);
+    const student = await Student.findByIdAndUpdate(req.params.id, { isDeleted: true, status: 'withdrawn' });
     if (!student) return res.status(404).json({ message: "Student not found" });
 
-    await User.deleteOne({ refId: student._id, role: "student" });
+    await User.updateOne({ refId: student._id, role: "student" }, { isDeleted: true });
 
     await AuditLog.create({
       userId: req.user._id,

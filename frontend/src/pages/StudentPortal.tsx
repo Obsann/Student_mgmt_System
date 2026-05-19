@@ -31,8 +31,8 @@ function StudentDashboard() {
   return (
     <div className="space-y-6">
       {/* Profile Card */}
-      <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-8 text-white shadow-xl shadow-emerald-500/20 relative overflow-hidden animate-fade-scale group">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-700 group-hover:scale-125"></div>
+      <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-sm relative overflow-hidden animate-fade-scale group">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 transition-transform duration-700 group-hover:scale-125"></div>
         <div className="relative z-10 flex items-center gap-5">
           <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-3xl font-black shadow-inner group-hover:rotate-6 transition-transform overflow-hidden">
             {currentUser?.avatar ? (
@@ -46,8 +46,8 @@ function StudentDashboard() {
             <p className="text-emerald-100 text-sm mt-1 font-medium bg-black/10 inline-block px-3 py-1 rounded-xl">Grade {student?.grade}{student?.section} • Roll: {student?.roll_number}</p>
           </div>
           <div className="hidden sm:block text-right pr-4">
-            <div className="text-4xl font-black">{avgScore}%</div>
-            <div className="text-emerald-100 text-xs mt-1 font-bold uppercase tracking-widest">Overall Avg</div>
+            <div className="text-4xl font-black text-white">{avgScore}%</div>
+            <div className="text-slate-400 text-xs mt-1 font-bold uppercase tracking-widest">Overall Avg</div>
           </div>
         </div>
       </div>
@@ -92,10 +92,10 @@ function StudentDashboard() {
         </div>
       </div>
 
-      {/* Academic Term Progress (Adapted for High School) */}
-      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-3xl border border-indigo-100 p-6 shadow-sm animate-fade-up">
-        <h3 className="text-sm font-extrabold text-indigo-900 mb-4 flex items-center gap-2">
-          <Award size={18} className="text-indigo-600" />
+      {/* Academic Term Progress */}
+      <div className="bg-slate-50 rounded-3xl border border-slate-200 p-6 shadow-sm animate-fade-up">
+        <h3 className="text-sm font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+          <Award size={18} className="text-slate-500" />
           Current Term Progress
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -116,9 +116,9 @@ function StudentDashboard() {
             </div>
           </div>
           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
-            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Academic Status</div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Academic Status</div>
             <div className="font-black text-slate-800 text-lg">
-              {avgScore >= 90 ? "Honor Roll 🌟" : avgScore >= 70 ? "Good Standing" : "At Risk"}
+              {avgScore >= 90 ? "Honor Roll" : avgScore >= 70 ? "Good Standing" : "At Risk"}
             </div>
           </div>
         </div>
@@ -403,7 +403,7 @@ function MyAttendance() {
             return (
               <div key={date} className="px-4 py-3">
                 <div className="text-xs font-medium text-gray-500 mb-2">
-                  📅 {new Date(date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                  {new Date(date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {records.map((r) => {
@@ -418,7 +418,6 @@ function MyAttendance() {
                           "bg-gray-50 text-gray-700"
                         }`}
                       >
-                        {r.status === "present" ? "✅" : r.status === "absent" ? "❌" : r.status === "late" ? "⏰" : "📝"}
                         {sub?.name || "Unknown"}
                       </span>
                     );

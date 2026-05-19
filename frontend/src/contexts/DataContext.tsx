@@ -69,18 +69,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const loadAllData = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const [students, teachers, subjects, attendance, marks] = await Promise.all([
-        api.getStudents(),
-        api.getTeachers(),
-        api.getSubjects(),
+      const [studentsRes, teachersRes, subjectsRes, attendance, marks] = await Promise.all([
+        api.getStudents({ limit: 1000 }), // temporary large limit until dashboards use aggregated stats API
+        api.getTeachers({ limit: 1000 }),
+        api.getSubjects({ limit: 1000 }),
         api.getAttendance(),
         api.getAllMarks(),
       ]);
       setState({
         users: [],
-        students,
-        teachers,
-        subjects,
+        students: studentsRes.data,
+        teachers: teachersRes.data,
+        subjects: subjectsRes.data,
         attendance,
         marks,
         enrollments: [],

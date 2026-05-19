@@ -1,8 +1,15 @@
 import type {
   Student, Teacher, Subject, Mark, AttendanceRecord,
   ApiStudent, ApiTeacher, ApiSubject, ApiMark, ApiAttendance,
-  LoginResponse, ApiUser,
+  LoginResponse, ApiUser, PaginatedResponse,
 } from "../types";
+
+export interface ApiPaginated<T> {
+  data: T[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
@@ -184,10 +191,15 @@ export const api = {
     }),
 
   // Students
-  getStudents: async (params: Record<string, string> = {}): Promise<Student[]> => {
-    const query = new URLSearchParams(params).toString();
-    const data = await apiFetch<ApiStudent[]>(`${API_BASE_URL}/students?${query}`, { headers: getHeaders() });
-    return data.map(mapStudent);
+  getStudents: async (params: Record<string, string | number> = {}): Promise<{ data: Student[], total: number, page: number, totalPages: number }> => {
+    const query = new URLSearchParams(params as any).toString();
+    const res = await apiFetch<ApiPaginated<ApiStudent>>(`${API_BASE_URL}/students?${query}`, { headers: getHeaders() });
+    return {
+      data: res.data.map(mapStudent),
+      total: res.total,
+      page: res.page,
+      totalPages: res.totalPages
+    };
   },
 
   createStudent: async (student: Omit<Student, "id">): Promise<Student> => {
@@ -264,9 +276,14 @@ export const api = {
       headers: getHeaders(),
     }),
 
-  getPendingStudents: async (): Promise<Student[]> => {
-    const data = await apiFetch<ApiStudent[]>(`${API_BASE_URL}/students?status=pending`, { headers: getHeaders() });
-    return data.map(mapStudent);
+  getPendingStudents: async (): Promise<{ data: Student[], total: number, page: number, totalPages: number }> => {
+    const res = await apiFetch<ApiPaginated<ApiStudent>>(`${API_BASE_URL}/students?status=pending`, { headers: getHeaders() });
+    return {
+      data: res.data.map(mapStudent),
+      total: res.total,
+      page: res.page,
+      totalPages: res.totalPages
+    };
   },
 
   issueCredentials: (studentId: string, email?: string) =>
@@ -280,9 +297,15 @@ export const api = {
     ),
 
   // Teachers
-  getTeachers: async (): Promise<Teacher[]> => {
-    const data = await apiFetch<ApiTeacher[]>(`${API_BASE_URL}/teachers`, { headers: getHeaders() });
-    return data.map(mapTeacher);
+  getTeachers: async (params: Record<string, string | number> = {}): Promise<{ data: Teacher[], total: number, page: number, totalPages: number }> => {
+    const query = new URLSearchParams(params as any).toString();
+    const res = await apiFetch<ApiPaginated<ApiTeacher>>(`${API_BASE_URL}/teachers?${query}`, { headers: getHeaders() });
+    return {
+      data: res.data.map(mapTeacher),
+      total: res.total,
+      page: res.page,
+      totalPages: res.totalPages
+    };
   },
 
   createTeacher: async (teacher: Omit<Teacher, "id">): Promise<Teacher> => {
@@ -325,11 +348,15 @@ export const api = {
       headers: getHeaders(),
     }),
 
-  // Subjects
-  getSubjects: async (params: Record<string, string> = {}): Promise<Subject[]> => {
-    const query = new URLSearchParams(params).toString();
-    const data = await apiFetch<ApiSubject[]>(`${API_BASE_URL}/subjects?${query}`, { headers: getHeaders() });
-    return data.map(mapSubject);
+  getSubjects: async (params: Record<string, string | number> = {}): Promise<{ data: Subject[], total: number, page: number, totalPages: number }> => {
+    const query = new URLSearchParams(params as any).toString();
+    const res = await apiFetch<ApiPaginated<ApiSubject>>(`${API_BASE_URL}/subjects?${query}`, { headers: getHeaders() });
+    return {
+      data: res.data.map(mapSubject),
+      total: res.total,
+      page: res.page,
+      totalPages: res.totalPages
+    };
   },
 
   createSubject: async (subject: Omit<Subject, "id">): Promise<Subject> => {

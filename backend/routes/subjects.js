@@ -8,12 +8,26 @@ const router = express.Router();
 // GET /api/subjects
 router.get("/", protect, async (req, res) => {
   try {
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     if (req.query.grade) filter.grade = req.query.grade;
     if (req.query.teacherId) filter.teacherId = req.query.teacherId;
 
-    const subjects = await Subject.find(filter).populate("teacherId", "name email");
-    res.json(subjects);
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+
+    const total = await Subject.countDocuments(filter);
+    const subjects = await Subject.find(filter)
+      .populate("teacherId", "name email")
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      data: subjects,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -60,7 +74,7 @@ router.put("/:id", protect, authorize("admin"), async (req, res) => {
 // DELETE /api/subjects/:id
 router.delete("/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const subject = await Subject.findByIdAndDelete(req.params.id);
+    const subject = await Subject.findByIdAndUpdate(req.params.id, { isDeleted: true });
     if (!subject) return res.status(404).json({ message: "Subject not found" });
     res.json({ message: "Subject deleted" });
   } catch (err) {

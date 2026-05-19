@@ -16,8 +16,24 @@ function generatePassword(length = 10) {
 // GET /api/teachers
 router.get("/", protect, async (req, res) => {
   try {
-    const teachers = await Teacher.find().populate("subjects");
-    res.json(teachers);
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+    
+    const filter = { isDeleted: { $ne: true } };
+
+    const total = await Teacher.countDocuments(filter);
+    const teachers = await Teacher.find(filter)
+      .populate("subjects")
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      data: teachers,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -113,10 +129,10 @@ router.put("/:id", protect, authorize("admin"), async (req, res) => {
 // DELETE /api/teachers/:id
 router.delete("/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const teacher = await Teacher.findByIdAndDelete(req.params.id);
+    const teacher = await Teacher.findByIdAndUpdate(req.params.id, { isDeleted: true, status: 'Inactive' });
     if (!teacher) return res.status(404).json({ message: "Teacher not found" });
 
-    await User.deleteOne({ refId: teacher._id, role: "teacher" });
+    await User.updateOne({ refId: teacher._id, role: "teacher" }, { isDeleted: true });
 
     await AuditLog.create({
       userId: req.user._id,

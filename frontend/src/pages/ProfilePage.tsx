@@ -137,7 +137,7 @@ export default function ProfilePage() {
       <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-scale">
         {/* Cover Photo */}
         <div 
-          className="h-56 bg-gradient-to-br from-indigo-500 via-purple-500 to-blue-600 relative overflow-hidden bg-cover bg-center"
+          className="h-56 bg-slate-900 relative overflow-hidden bg-cover bg-center"
           style={coverPhotoPreview ? { backgroundImage: `url(${coverPhotoPreview})` } : {}}
         >
           {!coverPhotoPreview && (

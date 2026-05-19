@@ -1,16 +1,24 @@
-import { useState } from "react";
-import { UserCheck, Plus, Pencil, Trash2, Search, Save, Mail } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { UserCheck, Plus, Pencil, Trash2, Search, Save, Mail, CheckCircle, Clock, Building } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import { useToast } from "../../contexts/ToastContext";
 import { api } from "../../services/api";
 import EmptyState from "../../components/EmptyState";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
+import Pagination from "../../components/Pagination";
 import FormField from "../../components/FormField";
 import type { Teacher } from "../../types";
 
 export default function ManageTeachers() {
-  const { state, addTeacher, updateTeacher, deleteTeacher } = useApp();
+  const { state, loadAllData } = useApp();
   const { addToast } = useToast();
+
+  const [teachersData, setTeachersData] = useState<Teacher[]>([]);
+  const [totalTeachersCount, setTotalTeachersCount] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFetching, setIsFetching] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -36,14 +44,34 @@ export default function ManageTeachers() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const departments = Array.from(new Set(state.teachers.map(t => t.department || "General")));
+  const itemsPerPage = 10;
 
-  // Filtering
-  const filtered = state.teachers.filter((t) => {
-    const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) || t.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = selectedDept === "All" || (t.department || "General") === selectedDept;
-    const matchesStatus = selectedStatus === "All" || (t.status || "Active") === selectedStatus;
-    return matchesSearch && matchesDept && matchesStatus;
-  });
+  const fetchTeachers = useCallback(async () => {
+    setIsFetching(true);
+    try {
+      const res = await api.getTeachers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        department: selectedDept,
+        status: selectedStatus
+      });
+      setTeachersData(res.data);
+      setTotalTeachersCount(res.total);
+      setServerTotalPages(res.totalPages);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [currentPage, itemsPerPage, searchTerm, selectedDept, selectedStatus]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchTeachers();
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [fetchTeachers]);
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -94,9 +122,18 @@ export default function ManageTeachers() {
     if (!validateForm()) return;
     setLoading(true);
     try {
-      if (editId) await updateTeacher(editId, form);
-      else await addTeacher({ ...form, subjects: [] });
+      if (editId) {
+        await api.updateTeacher(editId, form);
+        addToast({ type: "success", title: "Success", message: "Teacher updated" });
+      } else {
+        await api.createTeacher({ ...form, subjects: [] });
+        addToast({ type: "success", title: "Success", message: "Teacher added" });
+      }
       setModalOpen(false);
+      fetchTeachers();
+      loadAllData();
+    } catch (err: any) {
+      addToast({ type: "error", title: "Error", message: err.message || "Operation failed" });
     } finally {
       setLoading(false);
     }
@@ -106,9 +143,16 @@ export default function ManageTeachers() {
     setConfirmDelete({ open: true, teacher });
   };
 
-  const confirmDeleteTeacher = () => {
+  const confirmDeleteTeacher = async () => {
     if (confirmDelete.teacher) {
-      deleteTeacher(confirmDelete.teacher.id);
+      try {
+        await api.deleteTeacher(confirmDelete.teacher.id);
+        addToast({ type: "success", title: "Success", message: "Teacher removed" });
+        fetchTeachers();
+        loadAllData();
+      } catch (err: any) {
+        addToast({ type: "error", title: "Error", message: err.message || "Failed to delete" });
+      }
       setConfirmDelete({ open: false, teacher: null });
     }
   };
@@ -118,22 +162,30 @@ export default function ManageTeachers() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👩‍🏫</div>
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <UserCheck size={24} className="text-emerald-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{state.teachers.length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Teachers</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">✅</div>
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <CheckCircle size={24} className="text-blue-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{state.teachers.filter(t => (t.status || 'Active') === 'Active').length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Active</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🏖️</div>
+          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Clock size={24} className="text-amber-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{state.teachers.filter(t => t.status === 'On Leave').length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">On Leave</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🏢</div>
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Building size={24} className="text-purple-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{departments.length || 1}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Departments</p>
         </div>
@@ -172,11 +224,11 @@ export default function ManageTeachers() {
       </div>
 
       {/* Grid */}
-      {filtered.length === 0 ? (
+      {teachersData.length === 0 ? (
         <EmptyState icon={<UserCheck size={48} />} title="No Teachers Found" description="Try adjusting your filter settings." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          {filtered.map(teacher => {
+          {teachersData.map(teacher => {
             const subjects = state.subjects.filter((s) => s.teacher_id === teacher.id);
             const initialLetter = teacher.name ? teacher.name.charAt(0).toUpperCase() : '?';
             return (
@@ -228,6 +280,12 @@ export default function ManageTeachers() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {serverTotalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <Pagination currentPage={currentPage} totalPages={serverTotalPages} onPageChange={setCurrentPage} />
         </div>
       )}
 

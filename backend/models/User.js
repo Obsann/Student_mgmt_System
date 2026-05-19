@@ -22,7 +22,8 @@ const userSchema = new mongoose.Schema(
         question: { type: String },
         answer: { type: String }
       }
-    ]
+    ],
+    isDeleted: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
@@ -38,5 +39,10 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+userSchema.index({ username: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ refId: 1 });
+userSchema.index({ isDeleted: 1 });
 
 module.exports = mongoose.model("User", userSchema);

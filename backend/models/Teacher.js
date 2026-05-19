@@ -13,8 +13,14 @@ const teacherSchema = new mongoose.Schema(
     experience: { type: Number, default: 0 },
     status: { type: String, enum: ["Active", "On Leave", "Inactive"], default: "Active" },
     avatar: { type: String, default: "" },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+teacherSchema.index({ email: 1 });
+teacherSchema.index({ assignedGrade: 1, assignedSection: 1 });
+teacherSchema.index({ department: 1 });
+teacherSchema.index({ isDeleted: 1 });
 
 module.exports = mongoose.model("Teacher", teacherSchema);

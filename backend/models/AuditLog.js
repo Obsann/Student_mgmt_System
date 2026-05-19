@@ -13,4 +13,7 @@ const auditLogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// TTL index: automatically delete logs older than 365 days
+auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 31536000 });
+
 module.exports = mongoose.model("AuditLog", auditLogSchema);

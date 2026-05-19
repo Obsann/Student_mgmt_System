@@ -29,7 +29,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username, isDeleted: { $ne: true } });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid username or password" });
     }

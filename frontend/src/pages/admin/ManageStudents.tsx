@@ -1,16 +1,21 @@
-import { useState } from "react";
-import { Plus, Search, Upload, Info, MapPin, Save, Pencil, Trash2, BookOpen, Mail } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { UserCheck, Plus, Pencil, Trash2, Search, Save, Upload, Download, Eye, Users, User, Layers, Info, MapPin, BookOpen, Mail } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import { useToast } from "../../contexts/ToastContext";
 import { api } from "../../services/api";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
 import Pagination from "../../components/Pagination";
 import FormField from "../../components/FormField";
-import type { Student, User } from "../../types";
+import type { Student, User as AuthUser } from "../../types";
 
 export default function ManageStudents() {
-  const { state, addStudent, updateStudent, deleteStudent, loadAllData } = useApp();
+  const { state, loadAllData } = useApp();
   const { addToast } = useToast();
+
+  const [studentsData, setStudentsData] = useState<Student[]>([]);
+  const [totalStudentsCount, setTotalStudentsCount] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+  const [isFetching, setIsFetching] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
@@ -37,19 +42,36 @@ export default function ManageStudents() {
 
   const itemsPerPage = 10;
   
-  // Filtering Logic
-  const filteredStudents = state.students.filter(s => {
-    const matchesSearch = `${s.first_name} ${s.last_name} ${s.fayda_id} ${s.roll_number}`.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGrade = selectedGrade === 'All' || s.grade === selectedGrade;
-    const matchesSection = selectedSection === 'All' || s.section === selectedSection;
-    const matchesGender = selectedGender === 'All' || s.gender === selectedGender;
-    return matchesSearch && matchesGrade && matchesSection && matchesGender;
-  });
+  const fetchStudents = useCallback(async () => {
+    setIsFetching(true);
+    try {
+      const res = await api.getStudents({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        grade: selectedGrade,
+        section: selectedSection,
+        gender: selectedGender
+      });
+      setStudentsData(res.data);
+      setTotalStudentsCount(res.total);
+      setServerTotalPages(res.totalPages);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [currentPage, itemsPerPage, searchTerm, selectedGrade, selectedSection, selectedGender]);
 
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  useEffect(() => {
+    // Debounce search
+    const timeout = setTimeout(() => {
+      fetchStudents();
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [fetchStudents]);
 
-  const totalStudents = state.students.length;
+  const totalStudents = state.students.length; // Global stats from context
   const totalMale = state.students.filter(s => s.gender === 'Male').length;
   const totalFemale = state.students.filter(s => s.gender === 'Female').length;
   const totalSections = new Set(state.students.map(s => `${s.grade}${s.section}`)).size;
@@ -166,11 +188,17 @@ export default function ManageStudents() {
         address: { region: form.region, zone: form.zone, kebele: form.kebele, house_no: form.house_no }
       };
       if (editId) {
-        await updateStudent(editId, payload);
+        await api.updateStudent(editId, payload);
+        addToast({ type: "success", title: "Success", message: "Student updated" });
       } else {
-        await addStudent({ ...payload, enrolled_date: new Date().toISOString() });
+        await api.createStudent({ ...payload, enrolled_date: new Date().toISOString() });
+        addToast({ type: "success", title: "Success", message: "Student added" });
       }
       setModalOpen(false);
+      fetchStudents();
+      loadAllData(); // Refresh global stats
+    } catch (err: any) {
+      addToast({ type: "error", title: "Error", message: err.message || "Operation failed" });
     } finally {
       setLoading(false);
     }
@@ -180,9 +208,16 @@ export default function ManageStudents() {
     setConfirmDelete({ open: true, student });
   };
 
-  const confirmDeleteStudent = () => {
+  const confirmDeleteStudent = async () => {
     if (confirmDelete.student) {
-      deleteStudent(confirmDelete.student.id);
+      try {
+        await api.deleteStudent(confirmDelete.student.id);
+        addToast({ type: "success", title: "Success", message: "Student removed" });
+        fetchStudents();
+        loadAllData();
+      } catch (err: any) {
+        addToast({ type: "error", title: "Error", message: err.message || "Failed to delete" });
+      }
       setConfirmDelete({ open: false, student: null });
     }
   };
@@ -192,22 +227,30 @@ export default function ManageStudents() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👨‍🎓</div>
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Users size={24} className="text-blue-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{totalStudents}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Students</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👦</div>
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <User size={24} className="text-emerald-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{totalMale}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Male</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👧</div>
+          <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <User size={24} className="text-pink-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{totalFemale}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Female</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📚</div>
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Layers size={24} className="text-purple-500" />
+          </div>
           <p className="text-3xl font-black text-slate-900">{totalSections}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Sections</p>
         </div>
@@ -269,10 +312,10 @@ export default function ManageStudents() {
                 <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {paginatedStudents.length > 0 ? paginatedStudents.map((student) => (
-                <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-4">
+            <tbody className="divide-y divide-slate-100">
+              {studentsData.map((student) => (
+                <tr key={student.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black ${student.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
                         {student.first_name[0]}{student.last_name[0]}
@@ -309,19 +352,13 @@ export default function ManageStudents() {
                     </div>
                   </td>
                 </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">
-                    No students found matching your criteria.
-                  </td>
-                </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/50">
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        {serverTotalPages > 1 && (
+          <div className="p-4 border-t border-slate-100 flex justify-center">
+            <Pagination currentPage={currentPage} totalPages={serverTotalPages} onPageChange={setCurrentPage} />
           </div>
         )}
       </div>

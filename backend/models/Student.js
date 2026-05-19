@@ -37,6 +37,7 @@ const studentSchema = new mongoose.Schema(
       default: "active",
     },
     enrolledDate: { type: Date, default: Date.now },
+    isDeleted: { type: Boolean, default: false },
 
     // Audit & Social
     avatar: { type: String, default: "" },
@@ -45,5 +46,9 @@ const studentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+studentSchema.index({ faydaId: 1 });
+studentSchema.index({ grade: 1, section: 1 });
+studentSchema.index({ isDeleted: 1 });
 
 module.exports = mongoose.model("Student", studentSchema);
