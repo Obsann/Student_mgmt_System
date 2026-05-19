@@ -55,19 +55,31 @@ export default function ProfilePage() {
   const [passwordData, setPasswordData] = useState({ current: "", new: "" });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
+      const formData = new FormData();
+      formData.append("avatar", file);
+      try {
+        await api.updateProfile(formData);
+        await checkSession();
+      } catch (err) {}
     }
   };
 
-  const handleCoverPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setCoverPhotoFile(file);
       setCoverPhotoPreview(URL.createObjectURL(file));
+      const formData = new FormData();
+      formData.append("coverPhoto", file);
+      try {
+        await api.updateProfile(formData);
+        await checkSession();
+      } catch (err) {}
     }
   };
 
@@ -148,14 +160,7 @@ export default function ProfilePage() {
           )}
           {coverPhotoPreview && <div className="absolute inset-0 bg-black/20" />}
           
-          {isEditing && (
-            <>
-              <input type="file" accept="image/*" ref={coverInputRef} className="hidden" onChange={handleCoverPhotoChange} />
-              <button onClick={() => coverInputRef.current?.click()} className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-2xl text-white text-sm font-bold border border-white/30 hover:bg-white/30 transition-all flex items-center gap-2 shadow-lg">
-                <Upload size={16} /> Update Cover
-              </button>
-            </>
-          )}
+
         </div>
 
         {/* Profile Info */}
@@ -170,20 +175,15 @@ export default function ProfilePage() {
                     {profileData.name.charAt(0)}
                   </div>
                 )}
-                {isEditing && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="text-white w-8 h-8" />
-                  </div>
-                )}
+              {/* Avatar update always available */}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                <Camera className="text-white w-8 h-8" />
               </div>
-              {isEditing && (
-                <>
-                  <input type="file" accept="image/*" ref={avatarInputRef} className="hidden" onChange={handleAvatarChange} />
-                  <button onClick={() => avatarInputRef.current?.click()} className="absolute bottom-2 right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all border-2 border-white hover:scale-110">
-                    <Edit3 size={18} />
-                  </button>
-                </>
-              )}
+            </div>
+            <input type="file" accept="image/*" ref={avatarInputRef} className="hidden" onChange={handleAvatarChange} />
+            <button onClick={() => avatarInputRef.current?.click()} className="absolute bottom-2 right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-all border-2 border-white hover:scale-110 z-10">
+              <Edit3 size={18} />
+            </button>
             </div>
 
             <div className="flex-1 pb-2">

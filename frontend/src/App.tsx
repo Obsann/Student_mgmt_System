@@ -13,6 +13,7 @@ import ToastContainer from "./components/ToastContainer";
 import AdminPortal from "./pages/AdminPortal";
 import TeacherPortal from "./pages/TeacherPortal";
 import StudentPortal from "./pages/StudentPortal";
+import GuidePage from "./pages/GuidePage";
 
 function AdminRoutes() {
   const navItems = [
@@ -24,6 +25,7 @@ function AdminRoutes() {
     { id: "reports", path: "/reports", label: "Reports", icon: <BarChart3 size={18} /> },
     { id: "audit-logs", path: "/audit-logs", label: "Audit Logs", icon: <ClipboardCheck size={18} /> },
     { id: "settings", path: "/settings", label: "Settings", icon: <Settings size={18} /> },
+    { id: "guide", path: "/guide", label: "Guide", icon: <BookOpen size={18} /> },
   ];
   return (
     <Routes>
@@ -38,6 +40,7 @@ function AdminRoutes() {
         <Route path="/audit-logs" element={<AdminPortal activePage="audit-logs" />} />
         <Route path="/settings" element={<AdminPortal activePage="settings" />} />
         <Route path="/profile" element={<AdminPortal activePage="profile" />} />
+        <Route path="/guide" element={<GuidePage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
@@ -51,6 +54,7 @@ function TeacherRoutes() {
     { id: "marks", path: "/marks", label: "Marks", icon: <Award size={18} /> },
     { id: "students", path: "/students", label: "My Students", icon: <Users size={18} /> },
     { id: "register", path: "/register", label: "Registration", icon: <UserPlus size={18} /> },
+    { id: "guide", path: "/guide", label: "Guide", icon: <BookOpen size={18} /> },
   ];
   return (
     <Routes>
@@ -62,6 +66,7 @@ function TeacherRoutes() {
         <Route path="/students" element={<TeacherPortal activePage="students" />} />
         <Route path="/register" element={<TeacherPortal activePage="register" />} />
         <Route path="/profile" element={<TeacherPortal activePage="profile" />} />
+        <Route path="/guide" element={<GuidePage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
@@ -73,6 +78,7 @@ function StudentRoutes() {
     { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
     { id: "marks", path: "/marks", label: "My Marks", icon: <Award size={18} /> },
     { id: "attendance", path: "/attendance", label: "My Attendance", icon: <ClipboardCheck size={18} /> },
+    { id: "guide", path: "/guide", label: "Guide", icon: <BookOpen size={18} /> },
   ];
   return (
     <Routes>
@@ -82,6 +88,7 @@ function StudentRoutes() {
         <Route path="/marks" element={<StudentPortal activePage="marks" />} />
         <Route path="/attendance" element={<StudentPortal activePage="attendance" />} />
         <Route path="/profile" element={<StudentPortal activePage="profile" />} />
+        <Route path="/guide" element={<GuidePage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

@@ -42,12 +42,15 @@ function Avatar({ name, src, size = 'md', className = '' }: { name?: string; src
 }
 
 export default function Layout({ navItems, roleLabel }: LayoutProps) {
-  const gradientClass = "from-indigo-600 to-indigo-700";
-  const textClass = "text-indigo-600";
-  const bgClass = "bg-indigo-50";
-  const borderClass = "border-indigo-100";
-
   const { currentUser, logout } = useApp();
+  
+  const themeMap: Record<string, any> = {
+    admin: { gradientClass: "from-blue-600 to-blue-700", textClass: "text-blue-600", bgClass: "bg-blue-50", borderClass: "border-blue-100" },
+    teacher: { gradientClass: "from-emerald-600 to-emerald-700", textClass: "text-emerald-600", bgClass: "bg-emerald-50", borderClass: "border-emerald-100" },
+    student: { gradientClass: "from-amber-500 to-amber-600", textClass: "text-amber-600", bgClass: "bg-amber-50", borderClass: "border-amber-100" },
+  };
+  const theme = themeMap[currentUser?.role || "student"];
+  const { gradientClass, textClass, bgClass, borderClass } = theme;
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -99,6 +102,13 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
             <button className="ml-auto lg:hidden text-slate-400 hover:text-slate-900 bg-slate-50 p-1.5 rounded-lg shrink-0" onClick={() => setSidebarOpen(false)}>
               <X className="w-5 h-5" />
             </button>
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)} 
+              className={`hidden lg:flex ml-auto items-center justify-center p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors`}
+              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isCollapsed ? <PanelLeftOpen className="w-4 h-4"/> : <PanelLeftClose className="w-4 h-4"/>}
+            </button>
           </div>
 
           {/* User info card */}
@@ -144,20 +154,7 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
             })}
           </nav>
 
-          <div className="pt-4 mt-4 border-t border-slate-100 flex flex-col gap-4">
-            <button 
-              onClick={() => setIsCollapsed(!isCollapsed)} 
-              className={`hidden lg:flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} w-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors`}
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              {isCollapsed ? <PanelLeftOpen className="w-5 h-5"/> : <PanelLeftClose className="w-5 h-5"/>}
-              {!isCollapsed && <span className="text-xs font-bold whitespace-nowrap">Collapse Menu</span>}
-            </button>
-            {!isCollapsed && (
-              <div className="text-center animate-fade-in">
-                <p className="text-xs text-slate-400 font-medium">Powered by OBN</p>
-              </div>
-            )}
+          <div className="pt-4 mt-4 flex flex-col gap-4">
           </div>
         </div>
       </aside>
@@ -201,10 +198,30 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
                   <div className="absolute top-full right-0 mt-3 w-80 bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-fade-scale origin-top-right">
                     <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <h3 className="font-extrabold text-slate-900">Updates</h3>
-                      <span className="text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest bg-gray-100 text-gray-600">0 New</span>
+                      <span className="text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-widest bg-gray-100 text-gray-600">
+                        {currentUser?.role === "student" ? "2 New" : "0 New"}
+                      </span>
                     </div>
-                    <div className="max-h-80 overflow-y-auto p-8 text-center">
-                      <p className="text-sm text-slate-500 font-medium">No new notifications</p>
+                    <div className="max-h-80 overflow-y-auto">
+                      {currentUser?.role === "student" && (
+                        <>
+                          <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <p className="text-sm font-bold text-slate-900 mb-1">New Mark Recorded</p>
+                            <p className="text-xs text-slate-500">Your Math teacher added a new mid-term mark.</p>
+                            <p className="text-[10px] text-slate-400 mt-2">2 hours ago</p>
+                          </div>
+                          <div className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <p className="text-sm font-bold text-slate-900 mb-1">Welcome to Kera Portal</p>
+                            <p className="text-xs text-slate-500">Make sure to update your profile cover.</p>
+                            <p className="text-[10px] text-slate-400 mt-2">1 day ago</p>
+                          </div>
+                        </>
+                      )}
+                      {currentUser?.role !== "student" && (
+                        <div className="p-8 text-center">
+                          <p className="text-sm text-slate-500 font-medium">No new notifications</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -265,11 +282,24 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
           </div>
         </main>
         
-        {/* Footer Status Bar */}
-        <div className={`h-10 bg-white border-t border-slate-200 text-[10px] sm:text-xs flex items-center px-4 sm:px-8 text-slate-400 font-mono justify-between fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'}`}>
-          <div className="hidden sm:block">KERA HIGH SCHOOL • JIMMA • 2025</div>
-          <div className="font-bold text-slate-500">{roleLabel.toUpperCase()} PORTAL v4.2.1</div>
-          <div>ETHIOPIAN MINISTRY OF EDUCATION</div>
+        {/* Broad Colorful Footer */}
+        <div className={`mt-auto bg-gradient-to-r ${gradientClass} text-white/90 py-6 sm:py-8 px-6 sm:px-12 flex flex-col md:flex-row items-center justify-between gap-4 z-40 relative shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-300`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="font-black text-white text-lg tracking-tight">KERA HIGH SCHOOL</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">Jimma City • Established 2025</div>
+            </div>
+          </div>
+          
+          <div className="text-center md:text-right">
+            <div className="text-sm font-bold bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/20 inline-block mb-1">
+              {roleLabel.toUpperCase()} PORTAL v4.2.1
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Ethiopian Ministry of Education</div>
+          </div>
         </div>
       </div>
     </div>

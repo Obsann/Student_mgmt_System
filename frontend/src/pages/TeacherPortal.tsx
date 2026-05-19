@@ -32,11 +32,7 @@ function TeacherDashboard() {
     return { ...student, avg };
   }).filter(s => s.avg > 0).sort((a, b) => b.avg - a.avg).slice(0, 3);
 
-  const upcomingEvents = [
-    { title: "Mid-Term Examinations", date: "Oct 15, 2025", type: "Exam" },
-    { title: "Parent-Teacher Meeting", date: "Oct 22, 2025", type: "Meeting" },
-    { title: "Staff Development Day", date: "Nov 05, 2025", type: "Holiday" }
-  ];
+  const recentMarks = [...myMarks].reverse().slice(0, 3);
 
   return (
     <div className="space-y-6">
@@ -136,22 +132,27 @@ function TeacherDashboard() {
             </div>
           </div>
 
-          {/* Upcoming Events */}
+          {/* Recent Mark Entries */}
           <div className="bg-white rounded-3xl border border-slate-100 p-6 animate-fade-up" style={{ animationDelay: '0.4s' }}>
             <div className="flex items-center gap-2 mb-6">
-              <CalendarDays className="text-indigo-500 w-5 h-5" />
-              <h3 className="font-extrabold text-slate-900">Upcoming Events</h3>
+              <ClipboardList className="text-indigo-500 w-5 h-5" />
+              <h3 className="font-extrabold text-slate-900">Recent Marks Entered</h3>
             </div>
             <div className="space-y-4">
-              {upcomingEvents.map((evt, idx) => (
-                <div key={idx} className="flex items-start gap-4">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900">{evt.title}</div>
-                    <div className="text-xs text-slate-500 mt-1">{evt.date} • {evt.type}</div>
+              {recentMarks.map((mark, idx) => {
+                const student = state.students.find(s => s.id === mark.student_id);
+                const subject = state.subjects.find(s => s.id === mark.subject_id);
+                return (
+                  <div key={idx} className="flex items-start gap-4">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">{student?.first_name} {student?.last_name}</div>
+                      <div className="text-xs text-slate-500 mt-1">{subject?.name} • {mark.assessment_type} • Score: {mark.score}/{mark.max_score}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
+              {recentMarks.length === 0 && <div className="text-xs text-slate-500 text-center py-4">No marks entered yet.</div>}
             </div>
           </div>
         </div>
@@ -176,9 +177,16 @@ function TakeAttendance() {
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const teacher = state.teachers.find((t) => t.id === teacherId);
-  const students = teacher
+  
+  const [selectedSection, setSelectedSection] = useState<string>(teacher?.assigned_section || "All");
+  
+  const currentSubjectObj = state.subjects.find(s => s.id === selectedSubject);
+  const targetGrade = currentSubjectObj ? currentSubjectObj.grade : teacher?.assigned_grade;
+  const availableSections = Array.from(new Set(state.students.filter(s => s.grade === targetGrade).map(s => s.section))).sort();
+
+  const students = targetGrade
     ? state.students
-        .filter((s) => s.grade === teacher.assigned_grade && s.section === teacher.assigned_section)
+        .filter((s) => s.grade === targetGrade && (selectedSection === "All" || s.section === selectedSection))
         .sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
@@ -300,6 +308,19 @@ function TakeAttendance() {
               ))}
             </select>
           </div>
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-medium text-slate-600 mb-1">Section</label>
+            <select
+              value={selectedSection}
+              onChange={(e) => { setSelectedSection(e.target.value); setSubmitted(false); }}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+            >
+              <option value="All">All Sections</option>
+              {availableSections.map((sec) => (
+                <option key={sec} value={sec}>Section {sec}</option>
+              ))}
+            </select>
+          </div>
           <div className="w-full md:w-auto">
             <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
             <input
@@ -414,7 +435,7 @@ function TakeAttendance() {
            </div>
         </div>
       </div>
-    </div>
+    </div>
   );
 }
 
@@ -427,48 +448,99 @@ function EnterMarks() {
   const mySubjects = getSubjectsByTeacher(teacherId);
 
   const [selectedSubject, setSelectedSubject] = useState(mySubjects[0]?.id || "");
-  const [assessmentType, setAssessmentType] = useState<"quiz" | "midterm" | "final" | "assignment">("quiz");
-  const [scores, setScores] = useState<Record<string, string>>({});
-  const [remarks, setRemarks] = useState<Record<string, string>>({});
-  const [maxScore, setMaxScore] = useState(100);
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
-  const [submitted, setSubmitted] = useState(false);
-
   const teacher = state.teachers.find((t) => t.id === teacherId);
-  const students = teacher
-    ? state.students.filter((s) => s.grade === teacher.assigned_grade && s.section === teacher.assigned_section).sort((a, b) => a.last_name.localeCompare(b.last_name))
+  const [selectedSection, setSelectedSection] = useState<string>(teacher?.assigned_section || "All");
+
+  const currentSubjectObj = state.subjects.find(s => s.id === selectedSubject);
+  const targetGrade = currentSubjectObj ? currentSubjectObj.grade : teacher?.assigned_grade;
+  const availableSections = Array.from(new Set(state.students.filter(s => s.grade === targetGrade).map(s => s.section))).sort();
+
+  const students = targetGrade
+    ? state.students
+        .filter((s) => s.grade === targetGrade && (selectedSection === "All" || s.section === selectedSection))
+        .sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
-  useEffect(() => {
-    const loaded: Record<string, string> = {};
-    const savedState: Record<string, boolean> = {};
-    const remarksLoaded: Record<string, string> = {};
-    students.forEach((student) => {
-      const existing = state.marks.find(
-        (m) =>
-          m.student_id === student.id &&
-          m.subject_id === selectedSubject &&
-          m.assessment_type === assessmentType &&
-          m.semester === 1
-      );
-      if (existing) {
-        loaded[student.id] = String(existing.score);
-        savedState[student.id] = true;
-      } else {
-        loaded[student.id] = "";
-        savedState[student.id] = false;
-      }
-      remarksLoaded[student.id] = existing?.remarks || "";
-    });
-    setScores(loaded);
-    setRemarks(remarksLoaded);
-    setSaved(savedState);
-    setSubmitted(false);
-  }, [selectedSubject, assessmentType, students.length]);
+  // Continuous assessment max scores state
+  const [maxScores, setMaxScores] = useState({
+    attendance: 10,
+    assignment: 10,
+    quiz: 10,
+    midterm: 20,
+    final: 50
+  });
 
-  const handleScoreChange = (studentId: string, value: string) => {
-    if (value !== "" && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > maxScore)) return;
-    setScores((prev) => ({ ...prev, [studentId]: value }));
+  // scores[studentId][assessmentType] = scoreValue
+  const [scores, setScores] = useState<Record<string, Record<string, string>>>({});
+  const [remarks, setRemarks] = useState<Record<string, string>>({});
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load existing marks on mount or selected subject/section change
+  useEffect(() => {
+    const loadedScores: Record<string, Record<string, string>> = {};
+    const loadedRemarks: Record<string, string> = {};
+    const loadedSaved: Record<string, boolean> = {};
+
+    const assessmentTypes = ["attendance", "assignment", "quiz", "midterm", "final"] as const;
+
+    students.forEach((student) => {
+      loadedScores[student.id] = {
+        attendance: "",
+        assignment: "",
+        quiz: "",
+        midterm: "",
+        final: ""
+      };
+      loadedRemarks[student.id] = "";
+      loadedSaved[student.id] = false;
+
+      // Find marks for this student and subject
+      const studentMarks = state.marks.filter(
+        (m) => m.student_id === student.id && m.subject_id === selectedSubject && m.semester === 1
+      );
+
+      let studentHasAnyMark = false;
+      studentMarks.forEach((m) => {
+        if (assessmentTypes.includes(m.assessment_type as any)) {
+          loadedScores[student.id][m.assessment_type as typeof assessmentTypes[number]] = String(m.score);
+          studentHasAnyMark = true;
+          // Set dynamic max score from DB if found (keep default if not found)
+          if (m.max_score) {
+            setMaxScores(prev => ({
+              ...prev,
+              [m.assessment_type]: m.max_score
+            }));
+          }
+        }
+        if (m.remarks) {
+          loadedRemarks[student.id] = m.remarks;
+        }
+      });
+
+      if (studentHasAnyMark) {
+        loadedSaved[student.id] = true;
+      }
+    });
+
+    setScores(loadedScores);
+    setRemarks(loadedRemarks);
+    setSaved(loadedSaved);
+    setSubmitted(false);
+  }, [selectedSubject, selectedSection, students.length]);
+
+  const handleScoreChange = (studentId: string, type: string, value: string) => {
+    const maxVal = maxScores[type as keyof typeof maxScores] || 100;
+    if (value !== "" && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > maxVal)) return;
+
+    setScores((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || {}),
+        [type]: value
+      }
+    }));
     setSaved((prev) => ({ ...prev, [studentId]: false }));
     setSubmitted(false);
   };
@@ -479,38 +551,89 @@ function EnterMarks() {
     setSubmitted(false);
   };
 
-  const handleSubmit = async () => {
-    const marks = Object.entries(scores)
-      .filter(([, score]) => score !== "")
-      .map(([studentId, score]) => ({
-        student_id: studentId,
-        subject_id: selectedSubject,
-        academic_year: "2025/2026",
-        semester: 1,
-        assessment_type: assessmentType,
-        score: Number(score),
-        max_score: maxScore,
-        remarks: remarks[studentId] || "",
-        entered_by: teacherId,
-      }));
-    if (marks.length === 0) return;
-    await enterMarks(marks);
-    setSubmitted(true);
-    const allSaved: Record<string, boolean> = {};
-    Object.keys(scores).forEach((id) => { if (scores[id] !== "") allSaved[id] = true; });
-    setSaved(allSaved);
+  const getStudentTotal = (studentId: string) => {
+    const s = scores[studentId] || {};
+    const attendance = Number(s.attendance) || 0;
+    const assignment = Number(s.assignment) || 0;
+    const quiz = Number(s.quiz) || 0;
+    const midterm = Number(s.midterm) || 0;
+    const final = Number(s.final) || 0;
+    return attendance + assignment + quiz + midterm + final;
   };
 
-  const enteredScores = Object.values(scores).filter(s => s !== "").map(Number);
-  const enteredCount = enteredScores.length;
-  const avgScore = enteredCount > 0 ? Math.round(enteredScores.reduce((a,b)=>a+b,0)/enteredCount) : 0;
-  const highest = enteredCount > 0 ? Math.max(...enteredScores) : 0;
-  const lowest = enteredCount > 0 ? Math.min(...enteredScores) : 0;
+  const getStudentPercentage = (studentId: string) => {
+    const total = getStudentTotal(studentId);
+    const maxTotal = maxScores.attendance + maxScores.assignment + maxScores.quiz + maxScores.midterm + maxScores.final;
+    return maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+  };
+
+  const handleSubmit = async () => {
+    setIsSaving(true);
+    try {
+      const marksToSave: any[] = [];
+      const assessmentTypes = ["attendance", "assignment", "quiz", "midterm", "final"] as const;
+
+      students.forEach((student) => {
+        const studentScores = scores[student.id] || {};
+        assessmentTypes.forEach((type) => {
+          const val = studentScores[type];
+          if (val !== undefined && val !== "") {
+            marksToSave.push({
+              student_id: student.id,
+              subject_id: selectedSubject,
+              academic_year: "2025/2026",
+              semester: 1,
+              assessment_type: type,
+              score: Number(val),
+              max_score: maxScores[type],
+              remarks: remarks[student.id] || "",
+              entered_by: teacherId,
+            });
+          }
+        });
+      });
+
+      if (marksToSave.length === 0) {
+        setIsSaving(false);
+        return;
+      }
+
+      await enterMarks(marksToSave);
+      setSubmitted(true);
+      
+      const allSaved: Record<string, boolean> = {};
+      students.forEach((student) => {
+        const studentScores = scores[student.id] || {};
+        const hasAnyScore = assessmentTypes.some(type => studentScores[type] !== "");
+        if (hasAnyScore) {
+          allSaved[student.id] = true;
+        }
+      });
+      setSaved(allSaved);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Stats Calculations
+  const maxTotalScore = maxScores.attendance + maxScores.assignment + maxScores.quiz + maxScores.midterm + maxScores.final;
+  const enteredStudents = students.filter(s => {
+    const studentScores = scores[s.id] || {};
+    return Object.values(studentScores).some(val => val !== "");
+  });
+  const enteredCount = enteredStudents.length;
+
+  const enteredTotals = enteredStudents.map(s => getStudentTotal(s.id));
+  const avgScore = enteredCount > 0 ? Math.round(enteredTotals.reduce((a, b) => a + b, 0) / enteredCount) : 0;
+  const highest = enteredCount > 0 ? Math.max(...enteredTotals) : 0;
+  const lowest = enteredCount > 0 ? Math.min(...enteredTotals) : 0;
 
   // Grade Distribution
   const dist = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-  enteredScores.forEach(s => {
-    const p = (s / maxScore) * 100;
+  enteredStudents.forEach(s => {
+    const p = getStudentPercentage(s.id);
     if (p >= 90) dist.A++;
     else if (p >= 80) dist.B++;
     else if (p >= 60) dist.C++;
@@ -525,18 +648,18 @@ function EnterMarks() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
         <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Class Average</div>
-          <div className="text-2xl font-black text-slate-900">{avgScore}<span className="text-base text-slate-400">/{maxScore}</span></div>
+          <div className="text-2xl font-black text-slate-900">{avgScore}<span className="text-base text-slate-400">/{maxTotalScore}</span></div>
         </div>
         <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Highest</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Highest Total</div>
           <div className="text-2xl font-black text-green-600">{highest}</div>
         </div>
         <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lowest</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lowest Total</div>
           <div className="text-2xl font-black text-red-600">{lowest}</div>
         </div>
         <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-sm">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Entered</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Entered Students</div>
           <div className="text-2xl font-black text-blue-600">{enteredCount}<span className="text-base text-slate-400">/{students.length}</span></div>
         </div>
       </div>
@@ -545,7 +668,7 @@ function EnterMarks() {
         <div className="lg:col-span-3 space-y-6">
           {/* Controls */}
           <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm animate-fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Subject</label>
                 <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
@@ -553,17 +676,11 @@ function EnterMarks() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Assessment</label>
-                <select value={assessmentType} onChange={(e) => setAssessmentType(e.target.value as typeof assessmentType)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
-                  <option value="quiz">Quiz</option>
-                  <option value="assignment">Assignment</option>
-                  <option value="midterm">Midterm</option>
-                  <option value="final">Final Exam</option>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Section</label>
+                <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                  <option value="All">All Sections</option>
+                  {availableSections.map((sec) => <option key={sec} value={sec}>Section {sec}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Max Score</label>
-                <input type="number" min={1} value={maxScore} onChange={(e) => setMaxScore(Number(e.target.value) || 100)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
               </div>
             </div>
           </div>
@@ -571,58 +688,204 @@ function EnterMarks() {
           {/* Grid */}
           <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm animate-fade-up">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[1200px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                    <th className="text-left py-4 px-6 w-10">#</th>
-                    <th className="text-left py-4 px-6">Student</th>
-                    <th className="text-left py-4 px-6 w-32">Score</th>
-                    <th className="text-left py-4 px-6">Status</th>
-                    <th className="text-left py-4 px-6 hidden sm:table-cell">Remarks</th>
+                    <th className="py-4 px-4 text-center w-12">No</th>
+                    <th className="py-4 px-4 text-left w-32">Student ID</th>
+                    <th className="py-4 px-4 text-left w-52">Student Full Name</th>
+                    <th className="py-4 px-4 text-center w-20">Gender</th>
+                    <th className="py-4 px-4 text-center w-28">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>Attendance</span>
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                          <span className="text-[10px] text-slate-400">Max:</span>
+                          <input 
+                            type="number" 
+                            value={maxScores.attendance} 
+                            onChange={(e) => setMaxScores(prev => ({...prev, attendance: Number(e.target.value) || 0}))} 
+                            className="w-8 text-center text-xs font-extrabold text-slate-700 bg-transparent outline-none border-none p-0"
+                          />
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-4 text-center w-28">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>Assignment</span>
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                          <span className="text-[10px] text-slate-400">Max:</span>
+                          <input 
+                            type="number" 
+                            value={maxScores.assignment} 
+                            onChange={(e) => setMaxScores(prev => ({...prev, assignment: Number(e.target.value) || 0}))} 
+                            className="w-8 text-center text-xs font-extrabold text-slate-700 bg-transparent outline-none border-none p-0"
+                          />
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-4 text-center w-28">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>Quiz</span>
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                          <span className="text-[10px] text-slate-400">Max:</span>
+                          <input 
+                            type="number" 
+                            value={maxScores.quiz} 
+                            onChange={(e) => setMaxScores(prev => ({...prev, quiz: Number(e.target.value) || 0}))} 
+                            className="w-8 text-center text-xs font-extrabold text-slate-700 bg-transparent outline-none border-none p-0"
+                          />
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-4 text-center w-28">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>Mid Exam</span>
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                          <span className="text-[10px] text-slate-400">Max:</span>
+                          <input 
+                            type="number" 
+                            value={maxScores.midterm} 
+                            onChange={(e) => setMaxScores(prev => ({...prev, midterm: Number(e.target.value) || 0}))} 
+                            className="w-8 text-center text-xs font-extrabold text-slate-700 bg-transparent outline-none border-none p-0"
+                          />
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-4 text-center w-28">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>Final Exam</span>
+                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-1.5 py-0.5">
+                          <span className="text-[10px] text-slate-400">Max:</span>
+                          <input 
+                            type="number" 
+                            value={maxScores.final} 
+                            onChange={(e) => setMaxScores(prev => ({...prev, final: Number(e.target.value) || 0}))} 
+                            className="w-8 text-center text-xs font-extrabold text-slate-700 bg-transparent outline-none border-none p-0"
+                          />
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-4 text-center w-20">Total ({maxTotalScore})</th>
+                    <th className="py-4 px-4 text-center w-16">Grade</th>
+                    <th className="py-4 px-4 text-left">Remark</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {students.map((student, i) => {
-                    const val = scores[student.id] ?? "";
-                    const isSaved = saved[student.id];
-                    const score = Number(val);
-                    const percent = val !== "" ? (score / maxScore) * 100 : null;
+                    const sScores = scores[student.id] || {};
+                    const total = getStudentTotal(student.id);
+                    const percent = getStudentPercentage(student.id);
                     const gradeInfo = percent !== null ? getEthiopianGrade(percent) : null;
-
-                    let statusBadge = null;
-                    if (percent !== null) {
-                      if (percent >= 80) statusBadge = <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest bg-emerald-100 text-emerald-700">EXCELLENT</span>;
-                      else if (percent >= 60) statusBadge = <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest bg-blue-100 text-blue-700">SATISFACTORY</span>;
-                      else statusBadge = <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest bg-red-100 text-red-700">NEEDS WORK</span>;
-                    }
+                    const isRowSaved = saved[student.id];
 
                     return (
                       <tr key={student.id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="py-3 px-6 text-xs font-bold text-slate-400">{i + 1}</td>
-                        <td className="py-3 px-6">
-                          <div className="font-bold text-slate-900">{student.first_name} {student.last_name}</div>
-                          <div className="text-xs font-mono text-slate-400">{student.roll_number}</div>
+                        <td className="py-3 px-4 text-center text-xs font-bold text-slate-400">{i + 1}</td>
+                        <td className="py-3 px-4 font-mono text-xs text-slate-600">{student.roll_number}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-extrabold text-slate-900 leading-tight">{student.first_name} {student.last_name}</div>
                         </td>
-                        <td className="py-3 px-6">
-                          <div className="relative">
-                            <input
-                              type="number" min={0} max={maxScore} value={val}
-                              onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                              className={`w-full font-bold text-lg py-2 px-3 rounded-xl border-2 outline-none transition-all ${
-                                isSaved ? "border-green-200 bg-green-50 text-green-700" :
-                                val !== "" ? "border-yellow-300 bg-yellow-50 text-slate-900 shadow-[0_0_15px_rgba(253,224,71,0.3)]" :
-                                "border-slate-100 text-slate-900 bg-slate-50 group-hover:border-slate-300"
-                              } focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10`}
-                            />
-                            {gradeInfo && <div className={`absolute -right-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-sm ${gradeInfo.color}`}>{gradeInfo.grade}</div>}
-                          </div>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${student.gender === 'Male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>{student.gender}</span>
                         </td>
-                        <td className="py-3 px-6">{statusBadge}</td>
-                        <td className="py-3 px-6 hidden sm:table-cell">
-                          <input
-                            type="text" placeholder="Add note..." value={remarks[student.id] || ""}
+                        
+                        {/* Attendance */}
+                        <td className="py-3 px-4 text-center">
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={maxScores.attendance} 
+                            value={sScores.attendance || ""} 
+                            onChange={(e) => handleScoreChange(student.id, "attendance", e.target.value)}
+                            className={`w-16 font-extrabold text-center py-1.5 px-2 rounded-xl border text-sm outline-none transition-all ${
+                              isRowSaved ? "border-green-200 bg-green-50 text-green-700" :
+                              sScores.attendance ? "border-yellow-200 bg-yellow-50 text-slate-900" : "border-slate-200 text-slate-900 bg-slate-50"
+                            } focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10`}
+                          />
+                        </td>
+
+                        {/* Assignment */}
+                        <td className="py-3 px-4 text-center">
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={maxScores.assignment} 
+                            value={sScores.assignment || ""} 
+                            onChange={(e) => handleScoreChange(student.id, "assignment", e.target.value)}
+                            className={`w-16 font-extrabold text-center py-1.5 px-2 rounded-xl border text-sm outline-none transition-all ${
+                              isRowSaved ? "border-green-200 bg-green-50 text-green-700" :
+                              sScores.assignment ? "border-yellow-200 bg-yellow-50 text-slate-900" : "border-slate-200 text-slate-900 bg-slate-50"
+                            } focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10`}
+                          />
+                        </td>
+
+                        {/* Quiz */}
+                        <td className="py-3 px-4 text-center">
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={maxScores.quiz} 
+                            value={sScores.quiz || ""} 
+                            onChange={(e) => handleScoreChange(student.id, "quiz", e.target.value)}
+                            className={`w-16 font-extrabold text-center py-1.5 px-2 rounded-xl border text-sm outline-none transition-all ${
+                              isRowSaved ? "border-green-200 bg-green-50 text-green-700" :
+                              sScores.quiz ? "border-yellow-200 bg-yellow-50 text-slate-900" : "border-slate-200 text-slate-900 bg-slate-50"
+                            } focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10`}
+                          />
+                        </td>
+
+                        {/* Mid Exam */}
+                        <td className="py-3 px-4 text-center">
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={maxScores.midterm} 
+                            value={sScores.midterm || ""} 
+                            onChange={(e) => handleScoreChange(student.id, "midterm", e.target.value)}
+                            className={`w-16 font-extrabold text-center py-1.5 px-2 rounded-xl border text-sm outline-none transition-all ${
+                              isRowSaved ? "border-green-200 bg-green-50 text-green-700" :
+                              sScores.midterm ? "border-yellow-200 bg-yellow-50 text-slate-900" : "border-slate-200 text-slate-900 bg-slate-50"
+                            } focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10`}
+                          />
+                        </td>
+
+                        {/* Final Exam */}
+                        <td className="py-3 px-4 text-center">
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={maxScores.final} 
+                            value={sScores.final || ""} 
+                            onChange={(e) => handleScoreChange(student.id, "final", e.target.value)}
+                            className={`w-16 font-extrabold text-center py-1.5 px-2 rounded-xl border text-sm outline-none transition-all ${
+                              isRowSaved ? "border-green-200 bg-green-50 text-green-700" :
+                              sScores.final ? "border-yellow-200 bg-yellow-50 text-slate-900" : "border-slate-200 text-slate-900 bg-slate-50"
+                            } focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10`}
+                          />
+                        </td>
+
+                        {/* Total */}
+                        <td className="py-3 px-4 text-center font-mono font-black text-slate-900 text-base">
+                          {total}
+                        </td>
+
+                        {/* Grade */}
+                        <td className="py-3 px-4 text-center">
+                          {gradeInfo ? (
+                            <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black mx-auto shadow-sm ${gradeInfo.color}`}>
+                              {gradeInfo.grade}
+                            </span>
+                          ) : <span className="text-slate-300 font-bold">—</span>}
+                        </td>
+
+                        {/* Remarks */}
+                        <td className="py-3 px-4">
+                          <input 
+                            type="text" 
+                            placeholder="Add remark..." 
+                            value={remarks[student.id] || ""} 
                             onChange={(e) => handleRemarkChange(student.id, e.target.value)}
-                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-transparent text-xs font-medium outline-none focus:border-blue-400 focus:bg-white"
+                            className="w-full min-w-[120px] px-3 py-1.5 rounded-xl border border-slate-200 bg-transparent text-xs font-medium outline-none focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-500/10"
                           />
                         </td>
                       </tr>
@@ -645,14 +908,14 @@ function EnterMarks() {
           {students.length > 0 && (
             <button
               onClick={handleSubmit}
-              disabled={submitted || enteredCount === 0}
+              disabled={isSaving || enteredCount === 0}
               className={`w-full py-4 rounded-3xl font-black tracking-wide text-sm transition-all flex items-center justify-center gap-2 ${
-                submitted ? "bg-green-100 text-green-700 border border-green-200" :
+                submitted ? "bg-green-100 text-green-700 border border-green-200 shadow-inner" :
                 enteredCount === 0 ? "bg-slate-100 text-slate-400 cursor-not-allowed" :
                 "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1"
               }`}
             >
-              {submitted ? <><CheckCircle2 size={18} /> SAVED</> : <><Save size={18} /> SAVE MARKS</>}
+              {isSaving ? "SAVING..." : submitted ? <><CheckCircle2 size={18} /> MARKS SAVED SUCCESSFULLY</> : <><Save size={18} /> SAVE ALL SHEET MARKS</>}
             </button>
           )}
 
@@ -694,10 +957,20 @@ function ViewStudents() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid"|"list">("list");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [modalTab, setModalTab] = useState<"info" | "academic" | "attendance" | "address" | "parent">("info");
 
   const teacher = state.teachers.find((t) => t.id === teacherId);
-  const students = teacher
-    ? state.students.filter((s) => s.grade === teacher.assigned_grade && s.section === teacher.assigned_section).sort((a, b) => a.last_name.localeCompare(b.last_name))
+  
+  const [selectedSection, setSelectedSection] = useState<string>(teacher?.assigned_section || "All");
+
+  const currentSubjectObj = state.subjects.find(s => s.id === selectedSubject);
+  const targetGrade = currentSubjectObj ? currentSubjectObj.grade : teacher?.assigned_grade;
+  const availableSections = Array.from(new Set(state.students.filter(s => s.grade === targetGrade).map(s => s.section))).sort();
+
+  const students = targetGrade
+    ? state.students
+        .filter((s) => s.grade === targetGrade && (selectedSection === "All" || s.section === selectedSection))
+        .sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
   const filteredStudents = students.filter(s => 
@@ -705,6 +978,12 @@ function ViewStudents() {
     s.last_name.toLowerCase().includes(search.toLowerCase()) ||
     s.roll_number.toLowerCase().includes(search.toLowerCase())
   );
+
+  useEffect(() => {
+    if (selectedStudent) {
+      setModalTab("info");
+    }
+  }, [selectedStudent]);
 
   return (
     <div className="space-y-6">
@@ -731,6 +1010,10 @@ function ViewStudents() {
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
         <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="w-full sm:w-64 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
           {mySubjects.map((s) => <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>)}
+        </select>
+        <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} className="w-full sm:w-48 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+          <option value="All">All Sections</option>
+          {availableSections.map((sec) => <option key={sec} value={sec}>Section {sec}</option>)}
         </select>
         
         <div className="flex w-full sm:w-auto items-center gap-3">
@@ -819,8 +1102,8 @@ function ViewStudents() {
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${student.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>{student.gender}</span>
                  </div>
-                 <h4 className="font-extrabold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{student.first_name}</h4>
-                 <div className="font-bold text-slate-500 text-sm mb-4">{student.last_name}</div>
+                 <h4 className="font-extrabold text-slate-900 text-lg group-hover:text-blue-600 transition-colors break-words">{student.first_name}</h4>
+                 <div className="font-bold text-slate-500 text-sm mb-4 break-words">{student.last_name}</div>
                  <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                     <div className="text-xs font-mono text-slate-400">{student.roll_number}</div>
                     {marks.length > 0 ? (
@@ -839,49 +1122,212 @@ function ViewStudents() {
       {/* Student Detail Modal */}
       {selectedStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSelectedStudent(null)}>
-          <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
-            <div className="h-32 bg-gradient-to-r from-blue-500 to-indigo-600 relative">
+          <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-fade-scale max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="h-32 bg-gradient-to-r from-teal-500 to-emerald-600 relative">
                <button onClick={() => setSelectedStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-colors"><X className="w-5 h-5"/></button>
             </div>
+            
             <div className="px-8 pb-8">
                <div className="-mt-12 flex justify-between items-end mb-6">
-                 <div className="w-24 h-24 rounded-3xl bg-white p-1.5 shadow-lg">
+                 <div className="w-24 h-24 rounded-3xl bg-white p-1.5 shadow-lg shrink-0">
                     <div className="w-full h-full rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl font-black text-slate-400">
-                      {selectedStudent.first_name[0]}{selectedStudent.last_name[0]}
+                       {selectedStudent.first_name[0]}{selectedStudent.last_name[0]}
                     </div>
                  </div>
                  <div className="flex gap-2">
-                   <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"><MapPin className="w-4 h-4"/> View Address</button>
-                   <button className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"><Phone className="w-4 h-4"/> Contact Parent</button>
+                   <button 
+                     onClick={() => setModalTab(modalTab === "address" ? "info" : "address")}
+                     className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                       modalTab === "address" 
+                         ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/25" 
+                         : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                     }`}
+                   >
+                     <MapPin className="w-4 h-4"/> View Address
+                   </button>
+                   <button 
+                     onClick={() => setModalTab(modalTab === "parent" ? "info" : "parent")}
+                     className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                       modalTab === "parent" 
+                         ? "bg-teal-600 text-white shadow-md shadow-teal-600/25" 
+                         : "bg-teal-50 hover:bg-teal-100 text-teal-600"
+                     }`}
+                   >
+                     <Phone className="w-4 h-4"/> Contact Parent
+                   </button>
                  </div>
                </div>
                
-               <h2 className="text-3xl font-black text-slate-900 mb-1">{selectedStudent.first_name} {selectedStudent.middle_name} {selectedStudent.last_name}</h2>
-               <div className="flex items-center gap-3 text-sm font-bold text-slate-500 mb-8">
-                 <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">Grade {selectedStudent.grade}{selectedStudent.section}</span>
+               <h2 className="text-3xl font-black text-slate-900 mb-1 break-words leading-tight">
+                 {selectedStudent.first_name} {selectedStudent.middle_name} {selectedStudent.last_name}
+               </h2>
+               <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-slate-500 mb-6">
+                 <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Grade {selectedStudent.grade}{selectedStudent.section}</span>
                  <span>•</span>
                  <span className="font-mono">{selectedStudent.roll_number}</span>
                  <span>•</span>
                  <span>{selectedStudent.gender}</span>
                </div>
 
-               <div className="grid grid-cols-2 gap-4 mb-8">
-                 <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Parent/Guardian</div>
-                    <div className="font-bold text-slate-900">{selectedStudent.guardian_name} <span className="text-slate-400 font-medium">({selectedStudent.guardian_relation})</span></div>
-                    <div className="text-sm text-slate-500 mt-1">{selectedStudent.parent_phone}</div>
-                 </div>
-                 <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Previous School</div>
-                    <div className="font-bold text-slate-900">{selectedStudent.previous_school || 'N/A'}</div>
-                    <div className="text-sm text-slate-500 mt-1">Grade 8 GPA: {selectedStudent.grade_8_gpa}</div>
-                 </div>
-               </div>
+               {/* TAB RENDERING */}
+               {modalTab === "info" && (
+                 <>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                     <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Parent/Guardian</div>
+                        <div className="font-bold text-slate-900">{selectedStudent.guardian_name} <span className="text-slate-400 font-medium">({selectedStudent.guardian_relation})</span></div>
+                        <div className="text-sm text-slate-500 mt-1">{selectedStudent.parent_phone}</div>
+                     </div>
+                     <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Previous School</div>
+                        <div className="font-bold text-slate-900">{selectedStudent.previous_school || 'N/A'}</div>
+                        <div className="text-sm text-slate-500 mt-1">Grade 8 GPA: {selectedStudent.grade_8_gpa}</div>
+                     </div>
+                   </div>
 
-               <div className="flex gap-3">
-                 <button className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-colors">Full Academic Record</button>
-                 <button className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">Attendance History</button>
-               </div>
+                   <div className="flex gap-3">
+                     <button onClick={() => setModalTab("academic")} className="flex-1 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-md shadow-slate-900/10 hover:-translate-y-0.5">Full Academic Record</button>
+                     <button onClick={() => setModalTab("attendance")} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all hover:-translate-y-0.5">Attendance History</button>
+                   </div>
+                 </>
+               )}
+
+               {modalTab === "address" && (
+                 <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4 animate-fade-in">
+                   <h3 className="font-extrabold text-slate-900 text-lg flex items-center gap-2"><MapPin className="text-emerald-600"/> Home Address</h3>
+                   <div className="grid grid-cols-2 gap-4 text-sm font-semibold">
+                     <div>
+                       <span className="block text-xs text-slate-400">Region</span>
+                       <span className="text-slate-900">{selectedStudent.address?.region || "Oromia"}</span>
+                     </div>
+                     <div>
+                       <span className="block text-xs text-slate-400">Zone</span>
+                       <span className="text-slate-900">{selectedStudent.address?.zone || "Jimma"}</span>
+                     </div>
+                     <div>
+                       <span className="block text-xs text-slate-400">Woreda / City</span>
+                       <span className="text-slate-900">{selectedStudent.address?.kebele || "Jimma City"}</span>
+                     </div>
+                     <div>
+                       <span className="block text-xs text-slate-400">House No</span>
+                       <span className="text-slate-900 font-mono">{selectedStudent.address?.house_no || "House #384"}</span>
+                     </div>
+                   </div>
+                   <button onClick={() => setModalTab("info")} className="w-full mt-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-colors">Back to Profile</button>
+                 </div>
+               )}
+
+               {modalTab === "parent" && (
+                 <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4 animate-fade-in">
+                   <h3 className="font-extrabold text-slate-900 text-lg flex items-center gap-2"><Phone className="text-teal-600"/> Parent & Guardian Information</h3>
+                   <div className="space-y-3 text-sm">
+                     <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                       <span className="text-slate-400 font-medium">Guardian Name:</span>
+                       <span className="font-extrabold text-slate-900">{selectedStudent.guardian_name}</span>
+                     </div>
+                     <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                       <span className="text-slate-400 font-medium">Relation:</span>
+                       <span className="font-bold text-slate-900">{selectedStudent.guardian_relation}</span>
+                     </div>
+                     <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                       <span className="text-slate-400 font-medium">Phone Number:</span>
+                       <span className="font-mono font-bold text-teal-600">{selectedStudent.parent_phone}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="text-slate-400 font-medium">Personal Email:</span>
+                       <span className="font-mono text-slate-700">{selectedStudent.personal_email || "N/A"}</span>
+                     </div>
+                   </div>
+                   <button onClick={() => setModalTab("info")} className="w-full mt-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-colors">Back to Profile</button>
+                 </div>
+               )}
+
+               {modalTab === "academic" && (
+                 <div className="space-y-4 animate-fade-in">
+                   <div className="flex justify-between items-center">
+                     <h3 className="font-extrabold text-slate-900 text-lg">Academic Record (Semester 1)</h3>
+                     <button onClick={() => setModalTab("info")} className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors">Close</button>
+                   </div>
+                   <div className="overflow-x-auto border border-slate-100 rounded-2xl max-h-[300px] overflow-y-auto">
+                     <table className="w-full text-sm">
+                       <thead>
+                         <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase">
+                           <th className="py-2.5 px-4 text-left">Subject</th>
+                           <th className="py-2.5 px-4 text-center">Total (100%)</th>
+                           <th className="py-2.5 px-4 text-center">Grade</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50 text-slate-700 font-medium">
+                         {state.subjects.filter(sub => sub.grade === selectedStudent.grade).map((subject) => {
+                           // Find all marks for this student and subject
+                           const sMarks = state.marks.filter(
+                             (m) => m.student_id === selectedStudent.id && m.subject_id === subject.id && m.semester === 1
+                           );
+
+                           const total = sMarks.reduce((sum, m) => sum + m.score, 0);
+                           const percent = sMarks.length > 0 ? (total / sMarks.reduce((sum, m) => sum + (m.max_score || 100), 0)) * 100 : 0;
+                           const gradeInfo = sMarks.length > 0 ? getEthiopianGrade(percent) : null;
+
+                           return (
+                             <tr key={subject.id} className="hover:bg-slate-50">
+                               <td className="py-3 px-4 text-slate-900 font-bold">{subject.name}</td>
+                               <td className="py-3 px-4 text-center font-mono font-bold">{sMarks.length > 0 ? `${total}%` : "—"}</td>
+                               <td className="py-3 px-4 text-center">
+                                 {gradeInfo ? (
+                                   <span className={`px-2 py-0.5 rounded text-[10px] font-black inline-block ${gradeInfo.color}`}>{gradeInfo.grade}</span>
+                                 ) : <span className="text-slate-300 font-bold">—</span>}
+                               </td>
+                             </tr>
+                           );
+                         })}
+                       </tbody>
+                     </table>
+                   </div>
+                 </div>
+               )}
+
+               {modalTab === "attendance" && (
+                 <div className="space-y-4 animate-fade-in">
+                   <div className="flex justify-between items-center">
+                     <h3 className="font-extrabold text-slate-900 text-lg">Attendance History</h3>
+                     <button onClick={() => setModalTab("info")} className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors">Close</button>
+                   </div>
+                   
+                   <div className="overflow-x-auto border border-slate-100 rounded-2xl max-h-[300px] overflow-y-auto">
+                     <table className="w-full text-sm">
+                       <thead>
+                         <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase">
+                           <th className="py-2.5 px-4 text-left">Date</th>
+                           <th className="py-2.5 px-4 text-left">Subject</th>
+                           <th className="py-2.5 px-4 text-center">Status</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50 text-slate-700 font-semibold">
+                         {state.attendance.filter(a => a.student_id === selectedStudent.id).slice(0, 10).map((record) => {
+                           const sub = state.subjects.find(s => s.id === record.subject_id);
+                           return (
+                             <tr key={record.id} className="hover:bg-slate-50">
+                               <td className="py-3 px-4 font-mono text-slate-500 text-xs">{record.date}</td>
+                               <td className="py-3 px-4 text-slate-900 font-bold">{sub?.name || 'Unknown'}</td>
+                               <td className="py-3 px-4 text-center">
+                                 <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                   record.status === 'present' ? 'bg-green-50 text-green-600' :
+                                   record.status === 'absent' ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'
+                                 }`}>{record.status}</span>
+                               </td>
+                             </tr>
+                           );
+                         })}
+                         {state.attendance.filter(a => a.student_id === selectedStudent.id).length === 0 && (
+                           <tr>
+                             <td colSpan={3} className="py-8 text-center text-slate-400 font-medium">No attendance records found for this student.</td>
+                           </tr>
+                         )}
+                       </tbody>
+                     </table>
+                   </div>
+                 </div>
+               )}
             </div>
           </div>
         </div>

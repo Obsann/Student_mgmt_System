@@ -86,7 +86,7 @@ export interface Mark {
   subject_id: string;
   academic_year: string;
   semester: number;
-  assessment_type: "quiz" | "midterm" | "final" | "assignment";
+  assessment_type: "quiz" | "midterm" | "final" | "assignment" | "attendance";
   score: number;
   max_score?: number;
   remarks?: string;
@@ -192,7 +192,7 @@ export interface ApiMark {
   subjectId: string | { _id: string };
   academicYear: string;
   semester: number;
-  assessmentType: "quiz" | "midterm" | "final" | "assignment";
+  assessmentType: "quiz" | "midterm" | "final" | "assignment" | "attendance";
   score: number;
   maxScore?: number;
   remarks?: string;

@@ -67,6 +67,10 @@ export default function StudentRegistrationForm() {
       gender: "Male" as const,
       grade: teacher?.assigned_grade || "9",
       section: teacher?.assigned_section || "A",
+      region: "Oromia",
+      zone: "Jimma",
+      kebele: "Jimma City",
+      houseNo: "N/A",
     }
   });
 

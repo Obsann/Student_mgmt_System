@@ -26,7 +26,7 @@ function StudentDashboard() {
     ? Math.round((presentCount / myAttendance.length) * 100)
     : 0;
 
-  const grade = getEthiopianGrade(avgScore);
+  const grade = myMarks.length > 0 ? getEthiopianGrade(avgScore) : { grade: "N/A", color: "text-slate-600 bg-slate-50" };
 
   return (
     <div className="space-y-6">
@@ -101,24 +101,24 @@ function StudentDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
             <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Academic Term</div>
-            <div className="font-black text-slate-800 text-lg">Fall Semester</div>
+            <div className="font-black text-slate-800 text-lg">Semester 1</div>
           </div>
           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
-            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Unweighted GPA</div>
+            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Average Mark</div>
             <div className="font-black text-slate-800 text-lg">
-              {avgScore > 0 ? ((avgScore / 100) * 4.0).toFixed(2) : "N/A"}
+              {myMarks.length > 0 ? `${avgScore}%` : "N/A"}
             </div>
           </div>
           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
-            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Credits Earned</div>
+            <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Total Assessments</div>
             <div className="font-black text-slate-800 text-lg">
-              {myMarks.length > 0 ? myMarks.length * 3 : 0}
+              {myMarks.length}
             </div>
           </div>
           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Academic Status</div>
             <div className="font-black text-slate-800 text-lg">
-              {avgScore >= 90 ? "Honor Roll" : avgScore >= 70 ? "Good Standing" : "At Risk"}
+              {myMarks.length === 0 ? "New Student" : avgScore >= 50 ? "Pass" : "Fail"}
             </div>
           </div>
         </div>

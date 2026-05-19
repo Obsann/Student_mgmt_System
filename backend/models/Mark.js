@@ -6,7 +6,7 @@ const markSchema = new mongoose.Schema(
     subjectId: { type: mongoose.Schema.Types.ObjectId, ref: "Subject", required: true },
     academicYear: { type: String, required: true },
     semester: { type: Number, required: true, enum: [1, 2] },
-    assessmentType: { type: String, enum: ["quiz", "midterm", "final", "assignment"], required: true },
+    assessmentType: { type: String, enum: ["quiz", "midterm", "final", "assignment", "attendance"], required: true },
     score: { type: Number, required: true, min: 0 },
     maxScore: { type: Number, required: true, default: 100 },
     remarks: { type: String, default: "" },

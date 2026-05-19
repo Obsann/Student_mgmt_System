@@ -1,18 +1,34 @@
+import { useState, useEffect } from "react";
 import { useApp } from "../../contexts/AppContext";
 import { Users, UserCheck, BookOpen, ClipboardList, ShieldCheck, Layers, Activity } from "lucide-react";
+import { api } from "../../services/api";
 
 export default function AdminDashboard() {
   const { state } = useApp();
   
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [todayLogs, setTodayLogs] = useState(0);
+
+  useEffect(() => {
+    api.getAuditLogs(1, 10).then((res) => {
+      setRecentLogs(
+        res.logs.slice(0, 5).map((log: any) => ({
+          id: log._id,
+          user: log.userName || 'System',
+          details: log.details || log.action,
+          timestamp: new Date(log.createdAt).toLocaleString(),
+          category: log.entity || 'System',
+        }))
+      );
+      setTodayLogs(res.total || 0); // approx
+    }).catch(console.error);
+  }, []);
+
   const totalStudents = state.students.length;
   const totalTeachers = state.teachers.length;
   const activeTeachers = state.teachers.filter(t => t.status === 'Active').length;
-  // Pending enrollments logic: either from state or mock
-  const pendingEnrollments = state.students.filter(s => s.status === 'pending').length || 0; // fallback if status doesn't exist
+  const pendingEnrollments = state.students.filter(s => s.status === 'pending').length || 0;
   const totalSubjects = state.subjects.length;
-  
-  // Fake audit logs length for UI
-  const todayLogs = 24; 
 
   const totalMale = state.students.filter(s => s.gender === 'Male').length;
   const totalFemale = state.students.filter(s => s.gender === 'Female').length;
@@ -23,12 +39,6 @@ export default function AdminDashboard() {
 
   const deptCount: Record<string, number> = {};
   state.teachers.forEach(t => { deptCount[t.department || 'General'] = (deptCount[t.department || 'General'] || 0) + 1; });
-
-  const recentLogs = [
-    { id: 1, user: 'System', details: 'Database backup completed', timestamp: '10 mins ago', category: 'System' },
-    { id: 2, user: 'Abebe Kebede', details: 'Entered marks for Grade 9 Math', timestamp: '1 hour ago', category: 'Marks' },
-    { id: 3, user: 'Hanna Tadesse', details: 'Registered new student', timestamp: '2 hours ago', category: 'Student' }
-  ];
 
   const stats = [
     { label: 'Total Students', value: totalStudents, icon: <Users size={20} className="text-blue-600" />, bg: 'bg-slate-100' },
