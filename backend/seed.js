@@ -10,57 +10,87 @@ const Settings = require("./models/Settings");
 
 dotenv.config();
 
-// ─── TEACHER DATA ───────────────────────────────────────────────────────────────
+const grades = ["9", "10", "11", "12"];
+const sections = ["A", "B", "C", "D"];
+const teacherFirstNames = ["Ephrem", "Hiwot", "Daniel", "Kidist", "Abebe", "Mekdes", "Tadesse", "Aster", "Solomon", "Hanna", "Yonas", "Sara", "Henok", "Mahlet", "Dawit", "Senait"];
+const teacherLastNames = ["Worku", "Zewde", "Adane", "Bekele", "Kebede", "Tsegaye", "Girma", "Haile", "Desta", "Bogale", "Amare", "Mekonnen", "Fikre", "Tefera", "Assefa", "Tadesse"];
+const subjectNames = ["Mathematics", "Physics", "Biology", "Chemistry", "English", "History", "Geography", "Civics", "Amharic", "ICT", "PE", "Economics", "Business", "Art", "Music", "Agriculture"];
+const subjectCodes = ["MATH", "PHY", "BIO", "CHEM", "ENG", "HIS", "GEO", "CIV", "AMH", "ICT", "PE", "ECO", "BUS", "ART", "MUS", "AGR"];
 
-const teachersData = [
-  { name: "Ephrem Worku", email: "ephrem.worku@keraschool.et", phone: "+251911595966", qualification: "BSc Computer Science", assignedGrade: "9", assignedSection: "A" },
-  { name: "Hiwot Zewde", email: "hiwot.zewde@keraschool.et", phone: "+251913877337", qualification: "BSc Biology", assignedGrade: "9", assignedSection: "B" },
-  { name: "Daniel Adane", email: "daniel.adane@keraschool.et", phone: "+251911904798", qualification: "MSc Physics", assignedGrade: "10", assignedSection: "A" },
-  { name: "Kidist Bekele", email: "kidist.bekele@keraschool.et", phone: "+251919974427", qualification: "BA Civics", assignedGrade: "10", assignedSection: "B" },
-];
+// Generate 16 teachers
+const teachersData = [];
+const subjectsData = [];
 
-// ─── SUBJECT DATA ───────────────────────────────────────────────────────────────
+let tIdx = 0;
+for (let i = 0; i < grades.length; i++) {
+  for (let j = 0; j < sections.length; j++) {
+    const fn = teacherFirstNames[tIdx];
+    const ln = teacherLastNames[tIdx];
+    const grade = grades[i];
+    const section = sections[j];
 
-const subjectsData = [
-  { name: "Mathematics", code: "MATH", grade: "9", teacherIndex: 0 },
-  { name: "Physics", code: "PHY", grade: "9", teacherIndex: 1 },
-  { name: "Biology", code: "BIO", grade: "10", teacherIndex: 2 },
-  { name: "Civics", code: "CIV", grade: "10", teacherIndex: 3 },
-];
+    // Homeroom assignment
+    teachersData.push({
+      name: `${fn} ${ln}`,
+      email: `${fn.toLowerCase()}.${ln.toLowerCase()}@keraschool.et`,
+      phone: `+2519${String(11000000 + tIdx * 98765).slice(-8)}`,
+      qualification: "BEd Education",
+      assignedGrade: grade,
+      assignedSection: section,
+      experience: tIdx % 4 === 0 ? 0 : tIdx % 3 === 0 ? 2 : tIdx % 2 === 0 ? 5 : 10
+    });
+
+    const subName = subjectNames[tIdx];
+    const subCode = subjectCodes[tIdx];
+
+    // Assign 2 to 3 random sections to prove homeroom decoupling
+    const shuffledSections = [...sections].sort(() => 0.5 - Math.random());
+    const assignedSections = shuffledSections.slice(0, tIdx % 2 === 0 ? 2 : 3).sort();
+
+    subjectsData.push({
+      name: subName,
+      code: subCode,
+      grade: grade,
+      sections: assignedSections,
+      teacherIndex: tIdx
+    });
+
+    tIdx++;
+  }
+}
 
 // ─── STUDENT GENERATION ─────────────────────────────────────────────────────────
 
-const firstNames = ["Mekdes","Kidist","Yonas","Hanna","Ephrem","Sara","Mahlet","Henok","Nahom","Abigail"];
-const middleNames = ["Teshome","Bekele","Girma","Haile","Tsegaye","Desta","Bogale","Amare","Mekonnen","Fikre"];
-const lastNames = ["Tsegaye","Desta","Girma","Bogale","Amare","Mekonnen","Fikre","Tefera","Adane","Hailemariam"];
+const firstNames = ["Abebe", "Abel", "Abigail", "Abraham", "Alemu", "Amanuel", "Amare", "Aster", "Ayantu", "Beka", "Bekele", "Bereket", "Betelhem", "Biniam", "Biruk", "Chala", "Dagmawi", "Dawit", "Demeke", "Desta", "Eden", "Elias", "Ephrem", "Eyerusalem", "Eyob", "Fasika", "Fikre", "Gelila", "Genet", "Girma", "Habtamu", "Haile", "Hanna", "Helen", "Henok", "Hiwot", "Kaleb", "Kassahun", "Kebede", "Kidist", "Lidiya", "Mahlet", "Mekdes", "Mekonnen", "Meron", "Metsihet", "Mikias", "Nahom", "Natnael", "Netsanet", "Robel", "Ruth", "Samuel", "Sara", "Selam", "Semira", "Senait", "Sisay", "Solomon", "Tadesse", "Tefera", "Tesfaye", "Teshome", "Tewodros", "Tsegaye", "Worku", "Yabsira", "Yared", "Yohannes", "Yonas", "Zelalem", "Zewde"];
+const middleNames = ["Alemu", "Amare", "Assefa", "Ayalew", "Bekele", "Belay", "Bogale", "Dagne", "Dejene", "Demeke", "Desta", "Endale", "Fikre", "Gebre", "Girma", "Haile", "Kebede", "Kifle", "Lemma", "Mekonnen", "Mengesha", "Tadesse", "Tefera", "Tesfaye", "Teshome", "Tsegaye", "Worku", "Yilma", "Zewde", "Zike", "Abebe", "Abel", "Abraham", "Amanuel", "Biniam", "Biruk", "Chala", "Dagmawi", "Dawit", "Elias", "Ephrem", "Eyob", "Habtamu", "Henok", "Kaleb", "Kassahun", "Mikias", "Nahom", "Natnael", "Robel", "Samuel", "Sisay", "Solomon", "Tewodros", "Yared", "Yohannes", "Yonas", "Zelalem"];
+const lastNames = ["Adane", "Alemu", "Amare", "Assefa", "Ayalew", "Bekele", "Belay", "Bogale", "Dagne", "Dejene", "Demeke", "Desta", "Endale", "Fikre", "Gebre", "Girma", "Haile", "Hailemariam", "Kebede", "Kifle", "Lemma", "Mekonnen", "Mengesha", "Tadesse", "Tefera", "Tesfaye", "Teshome", "Tsegaye", "Worku", "Yilma", "Zewde", "Zike", "Abebe", "Abel", "Abraham", "Amanuel", "Biniam", "Biruk", "Chala", "Dagmawi", "Dawit", "Elias", "Ephrem", "Eyob", "Habtamu", "Henok", "Kaleb", "Kassahun", "Mikias", "Nahom", "Natnael", "Robel", "Samuel", "Sisay", "Solomon", "Tewodros", "Yared", "Yohannes", "Yonas", "Zelalem"];
 
 function generateStudents(adminId) {
   const students = [];
-  const grades = ["9", "10"];
-  const sections = ["A", "B"];
   let idx = 1;
 
   for (const grade of grades) {
     for (const section of sections) {
-      for (let i = 0; i < 5; i++) {
-        const fn = firstNames[(idx - 1) % firstNames.length];
-        const mn = middleNames[(idx - 1) % middleNames.length];
-        const ln = lastNames[(idx - 1) % lastNames.length];
-        const padded = String(idx).padStart(3, "0");
+      for (let i = 0; i < 40; i++) { // 40 students per section
+        const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const mn = middleNames[Math.floor(Math.random() * middleNames.length)];
+        const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const padded = String(idx).padStart(4, "0");
+
         students.push({
           firstName: fn,
           middleName: mn,
           lastName: ln,
-          dateOfBirth: new Date("2009-05-15"),
-          gender: idx % 2 === 0 ? "Female" : "Male",
+          dateOfBirth: new Date(2010 - parseInt(grade) + 9, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          gender: Math.random() > 0.5 ? "Female" : "Male",
           faydaId: String(100000000000 + idx),
-          grade8GPA: 85.5,
+          grade8GPA: 60 + (idx % 40),
           previousSchool: "St. Mary School",
-          nationalExamNumber: `NE${padded}2025`,
+          nationalExamNumber: `NE${padded}2026`,
           address: {
-            region: "Addis Ababa",
-            zone: "Kirkos",
-            kebele: "02",
+            region: "Jimma City",
+            zone: "Jimma",
+            kebele: "Bossa Addis",
             houseNo: String(100 + idx),
           },
           guardianName: `${ln} Senior`,
@@ -80,7 +110,6 @@ function generateStudents(adminId) {
 }
 
 // ─── SEED FUNCTION ──────────────────────────────────────────────────────────────
-
 async function seed() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -98,7 +127,7 @@ async function seed() {
       username: "admin@keraschool.et",
       password: "admin123",
       role: "admin",
-      name: "Ato Bekele Tadesse",
+      name: "Bekele Tadesse",
       email: "admin@keraschool.et",
     });
     console.log("✓ Admin created");
@@ -128,12 +157,14 @@ async function seed() {
         name: s.name,
         code: s.code,
         grade: s.grade,
+        sections: s.sections,
         teacherId: createdTeachers[s.teacherIndex]._id,
       });
       createdTeachers[s.teacherIndex].subjects.push(subject._id);
       await createdTeachers[s.teacherIndex].save();
       createdSubjects.push(subject);
     }
+    console.log(`✓ ${createdSubjects.length} Subjects created`);
 
     // 5. Students
     const studentsData = generateStudents(admin._id);
@@ -151,17 +182,92 @@ async function seed() {
     }
     console.log(`✓ ${studentsData.length} Students created`);
 
-    // 6. Settings
-    await Settings.create({ key: "academicYear", value: "2025/2026" });
+    // 6. Marks & Attendance Generation
+    console.log("Generating Marks & Attendance... this might take a moment.");
+    const attendanceRecords = [];
+    const marksRecords = [];
+
+    const today = new Date();
+    // 14 days back (skipping weekends roughly by just taking last 14 days)
+    const dates = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (13 - i));
+      return d;
+    });
+
+    for (const student of studentsData) {
+      // Find the actual DB record to get the _id
+      const studentRecord = await Student.findOne({ faydaId: student.faydaId });
+
+      // Find subjects for this student's grade and section
+      const studentSubjects = createdSubjects.filter(sub =>
+        sub.grade === student.grade && sub.sections.includes(student.section)
+      );
+
+      for (const subject of studentSubjects) {
+        // Generate 14 days attendance
+        for (const date of dates) {
+          const rand = Math.random();
+          let status = "present";
+          if (rand > 0.95) status = "absent";
+          else if (rand > 0.90) status = "late";
+
+          attendanceRecords.push({
+            studentId: studentRecord._id,
+            subjectId: subject._id,
+            date: date,
+            status: status,
+            recordedBy: subject.teacherId
+          });
+        }
+
+        // Generate Marks
+        marksRecords.push({
+          studentId: studentRecord._id,
+          subjectId: subject._id,
+          academicYear: "2026/2027",
+          semester: 1,
+          assessmentType: "midterm",
+          score: Math.floor(Math.random() * 20) + 10, // 10 to 30
+          maxScore: 30,
+          enteredBy: subject.teacherId
+        });
+
+        marksRecords.push({
+          studentId: studentRecord._id,
+          subjectId: subject._id,
+          academicYear: "2026/2027",
+          semester: 1,
+          assessmentType: "final",
+          score: Math.floor(Math.random() * 40) + 30, // 30 to 70
+          maxScore: 70,
+          enteredBy: subject.teacherId
+        });
+      }
+    }
+
+    const chunkSize = 5000;
+    for (let i = 0; i < attendanceRecords.length; i += chunkSize) {
+      await Attendance.insertMany(attendanceRecords.slice(i, i + chunkSize));
+    }
+    console.log(`✓ ${attendanceRecords.length} Attendance records generated`);
+
+    for (let i = 0; i < marksRecords.length; i += chunkSize) {
+      await Mark.insertMany(marksRecords.slice(i, i + chunkSize));
+    }
+    console.log(`✓ ${marksRecords.length} Marks records generated`);
+
+    // 7. Settings
+    await Settings.create({ key: "academicYear", value: "2026/2027" });
     await Settings.create({ key: "currentSemester", value: 1 });
     await Settings.create({ key: "schoolName", value: "Kera Secondary School" });
     await Settings.create({ key: "registrationOpen", value: true });
 
     console.log("\n═══════════════════════════════════════════════════════");
-    console.log("  SEED COMPLETE — New Module Ready");
+    console.log("  SEED COMPLETE — Large Dataset Ready");
     console.log("═══════════════════════════════════════════════════════");
     console.log("  Admin    :  admin@keraschool.et / admin123");
-    console.log("  Teacher  :  ephrem.worku        / teacher123");
+    console.log(`  Teacher  :  ${teachersData[0].email.split("@")[0]} / teacher123`);
     console.log("═══════════════════════════════════════════════════════\n");
 
     process.exit(0);

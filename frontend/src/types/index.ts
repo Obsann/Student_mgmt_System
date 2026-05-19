@@ -57,6 +57,7 @@ export interface Subject {
   name: string;
   code: string;
   grade: string;
+  sections?: string[];
   teacher_id: string;
   department?: string;
   periodsPerWeek?: number;
@@ -183,6 +184,7 @@ export interface ApiSubject {
   name: string;
   code: string;
   grade: string;
+  sections?: string[];
   teacherId: string | { _id: string };
 }
 

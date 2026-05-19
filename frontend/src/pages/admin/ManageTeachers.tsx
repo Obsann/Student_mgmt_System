@@ -252,15 +252,12 @@ export default function ManageTeachers() {
                   </div>
                   <div className="space-y-2 mt-4">
                     <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                      <span className="w-5 text-center text-slate-400">🏢</span>
                       <span>{teacher.department || 'Natural Science'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                      <span className="w-5 text-center text-slate-400">🎓</span>
                       <span className="truncate">{teacher.qualification}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                      <span className="w-5 text-center text-slate-400">⏱️</span>
                       <span>{teacher.experience || 0} years experience</span>
                     </div>
                   </div>
@@ -353,12 +350,12 @@ export default function ManageTeachers() {
       {/* Teacher Detail Modal */}
       {viewTeacher && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewTeacher(null)}>
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
-            <div className="h-24 bg-gradient-to-r from-slate-700 to-slate-800 rounded-t-3xl relative">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
+            <div className="h-24 bg-gradient-to-r from-slate-700 to-slate-800 rounded-t-3xl relative shrink-0">
               <button onClick={() => setViewTeacher(null)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-colors">✕</button>
             </div>
-            <div className="px-8 pb-8 -mt-10">
-              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black bg-emerald-50 text-emerald-700`}>
+            <div className="px-8 pb-8 -mt-10 overflow-y-auto custom-scrollbar flex-1">
+              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black bg-emerald-50 text-emerald-700 shrink-0`}>
                 {viewTeacher.name ? viewTeacher.name.charAt(0).toUpperCase() : '?'}
               </div>
               <div className="mt-4 flex items-start justify-between">

@@ -6,6 +6,7 @@ const compression = require("compression");
 const mongoSanitize = require("express-mongo-sanitize");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
+const { auditMiddleware } = require("./middleware/auditMiddleware");
 
 dotenv.config();
 
@@ -47,6 +48,9 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 app.use(express.json({ limit: "10mb" }));
+
+// ─── Zero-Boilerplate Audit Middleware ──────────────────────────────────────
+app.use(auditMiddleware);
 
 // ─── Routes ─────────────────────────────────────────────────────────────────
 const authRoutes = require("./routes/auth");

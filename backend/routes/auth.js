@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
 const { protect } = require("../middleware/auth");
+const { authLimiter } = require("../middleware/rateLimiter");
 const { sendPasswordResetEmail, sendCredentialsEmail } = require("../utils/mailer");
 const { upload, isConfigured } = require("../utils/cloudinary");
 
@@ -21,7 +22,7 @@ const signToken = (id) => {
 };
 
 // POST /api/auth/login
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -192,7 +193,7 @@ router.get("/verification-questions/:username", async (req, res) => {
 });
 
 // POST /api/auth/forgot-password — verify identity and send new password
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", authLimiter, async (req, res) => {
   try {
     const { username, answers } = req.body;
 

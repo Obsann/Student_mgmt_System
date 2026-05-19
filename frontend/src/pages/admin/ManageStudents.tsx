@@ -33,7 +33,7 @@ export default function ManageStudents() {
     first_name: "", middle_name: "", last_name: "", 
     date_of_birth: "", gender: "Male" as "Male" | "Female",
     fayda_id: "", grade_8_gpa: 0, previous_school: "", national_exam_number: "",
-    region: "Addis Ababa", zone: "", kebele: "", house_no: "",
+    region: "Jimma City", zone: "", kebele: "", house_no: "",
     guardian_name: "", guardian_relation: "", parent_phone: "", personal_email: "",
     grade: "9", section: "A", roll_number: "", status: "active" as "active" | "withdrawn" | "pending"
   });
@@ -92,7 +92,7 @@ export default function ManageStudents() {
       first_name: "", middle_name: "", last_name: "", 
       date_of_birth: "", gender: "Male",
       fayda_id: "", grade_8_gpa: 0, previous_school: "", national_exam_number: "",
-      region: "Addis Ababa", zone: "", kebele: "", house_no: "",
+      region: "Jimma City", zone: "", kebele: "", house_no: "",
       guardian_name: "", guardian_relation: "", parent_phone: "", personal_email: "",
       grade: "9", section: "A", roll_number: "", status: "active"
     });
@@ -435,12 +435,12 @@ export default function ManageStudents() {
       {/* Student Detail Modal */}
       {viewStudent && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewStudent(null)}>
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
-            <div className="h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-3xl relative">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
+            <div className="h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-3xl relative shrink-0">
               <button onClick={() => setViewStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 hover:bg-black/20 rounded-xl flex items-center justify-center text-white transition-colors">✕</button>
             </div>
-            <div className="px-8 pb-8 -mt-10">
-              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+            <div className="px-8 pb-8 -mt-10 overflow-y-auto custom-scrollbar flex-1">
+              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black shrink-0 ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
                 {viewStudent.first_name[0]}{viewStudent.last_name[0]}
               </div>
               <div className="mt-4 flex items-start justify-between">

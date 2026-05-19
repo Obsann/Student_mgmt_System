@@ -25,7 +25,8 @@ export default function ManageSubjects() {
     teacher_id: "",
     department: "Natural Science",
     periodsPerWeek: 4,
-    description: ""
+    description: "",
+    sections: [] as string[]
   });
   
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -61,7 +62,8 @@ export default function ManageSubjects() {
       teacher_id: "",
       department: "Natural Science",
       periodsPerWeek: 4,
-      description: ""
+      description: "",
+      sections: []
     });
     setFormErrors({});
     setModalOpen(true);
@@ -76,7 +78,8 @@ export default function ManageSubjects() {
       teacher_id: s.teacher_id,
       department: s.department || "Natural Science",
       periodsPerWeek: s.periodsPerWeek || 4,
-      description: s.description || ""
+      description: s.description || "",
+      sections: s.sections || []
     });
     setFormErrors({});
     setModalOpen(true);
@@ -195,6 +198,9 @@ export default function ManageSubjects() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-600">Grade {subject.grade}</span>
+                        {subject.sections && subject.sections.length > 0 && (
+                          <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-widest">{subject.sections.join(", ")}</div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">{teacher?.name || 'Unassigned'}</td>
                       <td className="px-6 py-4 text-center">
@@ -250,6 +256,29 @@ export default function ManageSubjects() {
                 )}
               </div>
 
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Assigned Sections (Optional)</label>
+                <div className="flex flex-wrap gap-2">
+                  {["A", "B", "C", "D"].map(sec => (
+                    <label key={sec} className={`cursor-pointer px-4 py-2 rounded-xl border text-sm font-bold transition-all ${form.sections.includes(sec) ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
+                      <input 
+                        type="checkbox" 
+                        className="hidden"
+                        checked={form.sections.includes(sec)}
+                        onChange={(e) => {
+                          const newSections = e.target.checked 
+                            ? [...form.sections, sec] 
+                            : form.sections.filter(s => s !== sec);
+                          setForm({...form, sections: newSections});
+                        }} 
+                      />
+                      Section {sec}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">If no sections are selected, the teacher will be assigned to all sections in the grade by default.</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Department</label>
@@ -303,6 +332,7 @@ export default function ManageSubjects() {
               <div className="space-y-2">
                 {[
                   ['Grade Level', `Grade ${viewSubject.grade}`], 
+                  ['Assigned Sections', viewSubject.sections && viewSubject.sections.length > 0 ? viewSubject.sections.join(', ') : 'All Sections'],
                   ['Assigned Teacher', state.teachers.find(t => t.id === viewSubject.teacher_id)?.name || 'Unassigned'], 
                   ['Periods Per Week', `${viewSubject.periodsPerWeek || 4} periods`]
                 ].map(([l, v]) => (

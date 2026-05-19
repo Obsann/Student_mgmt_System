@@ -178,15 +178,13 @@ function TakeAttendance() {
 
   const teacher = state.teachers.find((t) => t.id === teacherId);
   
-  const [selectedSection, setSelectedSection] = useState<string>(teacher?.assigned_section || "All");
+  // For homeroom attendance, we fix the grade and section to the teacher's assignment.
+  const targetGrade = teacher?.assigned_grade || "";
+  const targetSection = teacher?.assigned_section || "";
   
-  const currentSubjectObj = state.subjects.find(s => s.id === selectedSubject);
-  const targetGrade = currentSubjectObj ? currentSubjectObj.grade : teacher?.assigned_grade;
-  const availableSections = Array.from(new Set(state.students.filter(s => s.grade === targetGrade).map(s => s.section))).sort();
-
   const students = targetGrade
     ? state.students
-        .filter((s) => s.grade === targetGrade && (selectedSection === "All" || s.section === selectedSection))
+        .filter((s) => s.grade === targetGrade && s.section === targetSection)
         .sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 
@@ -297,29 +295,11 @@ function TakeAttendance() {
       <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all animate-fade-in">
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1 w-full">
-            <label className="block text-xs font-medium text-slate-600 mb-1">Subject</label>
-            <select
-              value={selectedSubject}
-              onChange={(e) => { setSelectedSubject(e.target.value); setSubmitted(false); }}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-            >
-              {mySubjects.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} (Grade {s.grade})</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-medium text-slate-600 mb-1">Section</label>
-            <select
-              value={selectedSection}
-              onChange={(e) => { setSelectedSection(e.target.value); setSubmitted(false); }}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-            >
-              <option value="All">All Sections</option>
-              {availableSections.map((sec) => (
-                <option key={sec} value={sec}>Section {sec}</option>
-              ))}
-            </select>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Homeroom Class</label>
+            <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 bg-slate-100 flex items-center gap-2">
+              <User size={16} className="text-blue-500" />
+              Grade {targetGrade} - Section {targetSection}
+            </div>
           </div>
           <div className="w-full md:w-auto">
             <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
@@ -386,7 +366,7 @@ function TakeAttendance() {
               {students.length === 0 && (
                 <div className="py-16 flex flex-col items-center justify-center text-slate-400">
                   <ClipboardList className="w-12 h-12 mb-3 text-slate-200" />
-                  <p className="text-sm font-medium">Select a subject to see students</p>
+                  <p className="text-sm font-medium">No students found in your homeroom.</p>
                 </div>
               )}
             </div>
@@ -453,11 +433,13 @@ function EnterMarks() {
 
   const currentSubjectObj = state.subjects.find(s => s.id === selectedSubject);
   const targetGrade = currentSubjectObj ? currentSubjectObj.grade : teacher?.assigned_grade;
-  const availableSections = Array.from(new Set(state.students.filter(s => s.grade === targetGrade).map(s => s.section))).sort();
+  const availableSections = currentSubjectObj?.sections?.length 
+    ? currentSubjectObj.sections.sort() 
+    : Array.from(new Set(state.students.filter(s => s.grade === targetGrade).map(s => s.section))).sort();
 
   const students = targetGrade
     ? state.students
-        .filter((s) => s.grade === targetGrade && (selectedSection === "All" || s.section === selectedSection))
+        .filter((s) => s.grade === targetGrade && (selectedSection === "All" ? availableSections.includes(s.section) : s.section === selectedSection))
         .sort((a, b) => a.last_name.localeCompare(b.last_name))
     : [];
 

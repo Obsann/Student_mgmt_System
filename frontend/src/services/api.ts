@@ -70,6 +70,7 @@ const mapSubject = (s: ApiSubject): Subject => ({
   name: s.name,
   code: s.code,
   grade: s.grade,
+  sections: s.sections || [],
   teacher_id: typeof s.teacherId === "string" ? s.teacherId : s.teacherId?._id,
 });
 
@@ -123,7 +124,33 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
       if (res.status === 401 && errData.code === "TOKEN_EXPIRED") {
         window.dispatchEvent(new CustomEvent("auth:session-expired"));
       }
-      throw new Error(errData.message || errData.error || `Request failed with status ${res.status}`);
+      
+      const errorMap: Record<number, string> = {
+        400: 'Oops! The information provided seems incorrect. Please check and try again.',
+        401: 'Your session has expired or is invalid. Please log in again to continue.',
+        403: 'You do not have permission to perform this action.',
+        404: 'We could not find what you were looking for.',
+        409: 'This action conflicts with existing data. It might already exist.',
+        413: 'The file you are trying to upload is too large.',
+        422: 'There was a validation error with your submission. Please check your inputs.',
+        429: 'You are making too many requests. Please slow down and try again in a moment.',
+        500: 'Our servers are experiencing technical difficulties. Please try again later.',
+        503: 'The service is temporarily unavailable. Please try again later.',
+      };
+
+      let friendlyMessage = errData?.message || errData?.error || '';
+      const isTechnical = friendlyMessage.toLowerCase().includes('mongo') || 
+                          friendlyMessage.toLowerCase().includes('duplicate') || 
+                          friendlyMessage.toLowerCase().includes('error:') || 
+                          !friendlyMessage;
+      
+      if (isTechnical && errorMap[res.status]) {
+          friendlyMessage = errorMap[res.status];
+      } else if (!friendlyMessage) {
+          friendlyMessage = `Request failed with status ${res.status}`;
+      }
+
+      throw new Error(friendlyMessage);
     }
     
     return data as T;
@@ -365,6 +392,7 @@ export const api = {
       code: subject.code,
       grade: subject.grade,
       teacherId: subject.teacher_id,
+      sections: subject.sections || [],
     };
     const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects`, {
       method: "POST",
@@ -380,6 +408,7 @@ export const api = {
     if (subject.code) backendFormat.code = subject.code;
     if (subject.grade) backendFormat.grade = subject.grade;
     if (subject.teacher_id) backendFormat.teacherId = subject.teacher_id;
+    if (subject.sections !== undefined) backendFormat.sections = subject.sections;
 
     const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects/${id}`, {
       method: "PUT",

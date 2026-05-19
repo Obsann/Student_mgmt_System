@@ -290,14 +290,11 @@ export default function Layout({ navItems, roleLabel }: LayoutProps) {
             </div>
             <div>
               <div className="font-black text-white text-lg tracking-tight">KERA HIGH SCHOOL</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">Jimma City • Established 2025</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">Jimma City • Established 2026</div>
             </div>
           </div>
           
           <div className="text-center md:text-right">
-            <div className="text-sm font-bold bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/20 inline-block mb-1">
-              {roleLabel.toUpperCase()} PORTAL v4.2.1
-            </div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Ethiopian Ministry of Education</div>
           </div>
         </div>
