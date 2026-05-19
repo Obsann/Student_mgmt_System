@@ -29,8 +29,11 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
-    const user = await User.findOne({ username, isDeleted: { $ne: true } });
-    if (!user || !(await user.comparePassword(password))) {
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+
+    const user = await User.findOne({ username: trimmedUsername, isDeleted: { $ne: true } });
+    if (!user || !(await user.comparePassword(trimmedPassword))) {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
@@ -172,7 +175,8 @@ router.put("/profile", protect, upload.fields([{ name: 'avatar', maxCount: 1 }, 
 // GET /api/auth/verification-questions/:username — get questions for a user
 router.get("/verification-questions/:username", async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.params.username });
+    const trimmedUsername = req.params.username.trim();
+    const user = await User.findOne({ username: trimmedUsername });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -196,7 +200,8 @@ router.post("/forgot-password", async (req, res) => {
       return res.status(400).json({ message: "Username and answers are required" });
     }
 
-    const user = await User.findOne({ username });
+    const trimmedUsername = username.trim();
+    const user = await User.findOne({ username: trimmedUsername });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
