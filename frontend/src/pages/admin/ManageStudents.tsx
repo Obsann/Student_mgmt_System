@@ -271,14 +271,14 @@ export default function ManageStudents() {
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Grade</label>
             <select value={selectedGrade} onChange={e => { setSelectedGrade(e.target.value); setCurrentPage(1); }}
               className="block w-28 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
-              <option value="All">All</option><option value="9">Grade 9</option><option value="10">Grade 10</option>
+              <option value="All">All</option><option value="9">Grade 9</option><option value="10">Grade 10</option><option value="11">Grade 11</option><option value="12">Grade 12</option>
             </select>
           </div>
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Section</label>
             <select value={selectedSection} onChange={e => { setSelectedSection(e.target.value); setCurrentPage(1); }}
               className="block w-28 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all outline-none">
-              <option value="All">All</option><option value="A">A</option><option value="B">B</option>
+              <option value="All">All</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
             </select>
           </div>
           <div>
@@ -333,7 +333,12 @@ export default function ManageStudents() {
                     <div className="text-xs font-mono text-slate-400 mt-0.5">{student.fayda_id}</div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${student.grade === '9' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                    <span className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+                      student.grade === '9' ? 'bg-blue-50 text-blue-700' :
+                      student.grade === '10' ? 'bg-purple-50 text-purple-700' :
+                      student.grade === '11' ? 'bg-indigo-50 text-indigo-700' :
+                      'bg-emerald-50 text-emerald-700'
+                    }`}>
                       {student.grade}-{student.section}
                     </span>
                   </td>

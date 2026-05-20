@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart3, Award, FileSpreadsheet, Download, RefreshCw } from "lucide-react";
+import { BarChart3, Award, FileSpreadsheet, Download, RefreshCw, TrendingUp, FileText, CheckCircle2 } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 
 export default function AdminReports() {
