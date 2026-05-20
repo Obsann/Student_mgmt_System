@@ -18,6 +18,27 @@ router.get("/", protect, async (req, res) => {
       filter.studentId = req.user.refId;
     }
 
+    // Teachers only see marks for subjects they teach or their homeroom students
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const Student = require("../models/Student");
+      const Subject = require("../models/Subject");
+      const teacher = await Teacher.findById(req.user.refId);
+      if (teacher) {
+        const teacherSubjects = await Subject.find({ teacherId: teacher._id });
+        const teacherSubjectIds = teacherSubjects.map(s => s._id);
+
+        const homeroomStudents = await Student.find({ grade: teacher.assignedGrade, section: teacher.assignedSection });
+        const homeroomStudentIds = homeroomStudents.map(s => s._id);
+
+        filter.$or = [
+          { enteredBy: teacher._id },
+          { subjectId: { $in: teacherSubjectIds } },
+          { studentId: { $in: homeroomStudentIds } }
+        ];
+      }
+    }
+
     const marks = await Mark.find(filter)
       .populate("subjectId", "name code grade")
       .sort({ createdAt: -1 });

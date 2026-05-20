@@ -68,7 +68,7 @@ function generateStudents(adminId) {
 
   for (const grade of grades) {
     for (const section of sections) {
-      for (let i = 0; i < 40; i++) { // 40 students per section
+      for (let i = 0; i < 10; i++) { // 10 students per section
         const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
         const mn = middleNames[Math.floor(Math.random() * middleNames.length)];
         const ln = lastNames[Math.floor(Math.random() * lastNames.length)];

@@ -18,6 +18,27 @@ router.get("/", protect, async (req, res) => {
       filter.studentId = req.user.refId;
     }
 
+    // Teachers only see attendance for subjects they teach or their homeroom students
+    if (req.user.role === "teacher") {
+      const Teacher = require("../models/Teacher");
+      const Student = require("../models/Student");
+      const Subject = require("../models/Subject");
+      const teacher = await Teacher.findById(req.user.refId);
+      if (teacher) {
+        const teacherSubjects = await Subject.find({ teacherId: teacher._id });
+        const teacherSubjectIds = teacherSubjects.map(s => s._id);
+
+        const homeroomStudents = await Student.find({ grade: teacher.assignedGrade, section: teacher.assignedSection });
+        const homeroomStudentIds = homeroomStudents.map(s => s._id);
+
+        filter.$or = [
+          { recordedBy: req.user._id },
+          { subjectId: { $in: teacherSubjectIds } },
+          { studentId: { $in: homeroomStudentIds } }
+        ];
+      }
+    }
+
     const records = await Attendance.find(filter)
       .populate("subjectId", "name code")
       .populate("studentId", "firstName lastName rollNumber")
