@@ -17,45 +17,42 @@ const teacherLastNames = ["Worku", "Zewde", "Adane", "Bekele", "Kebede", "Tsegay
 const subjectNames = ["Mathematics", "Physics", "Biology", "Chemistry", "English", "History", "Geography", "Civics", "Amharic", "ICT", "PE", "Economics", "Business", "Art", "Music", "Agriculture"];
 const subjectCodes = ["MATH", "PHY", "BIO", "CHEM", "ENG", "HIS", "GEO", "CIV", "AMH", "ICT", "PE", "ECO", "BUS", "ART", "MUS", "AGR"];
 
-// Generate 16 teachers
+// Generate 16 teachers and 64 subjects (all 16 subjects for each of the 4 grades)
 const teachersData = [];
 const subjectsData = [];
 
-let tIdx = 0;
-for (let i = 0; i < grades.length; i++) {
-  for (let j = 0; j < sections.length; j++) {
-    const fn = teacherFirstNames[tIdx];
-    const ln = teacherLastNames[tIdx];
-    const grade = grades[i];
-    const section = sections[j];
+for (let tIdx = 0; tIdx < 16; tIdx++) {
+  const fn = teacherFirstNames[tIdx];
+  const ln = teacherLastNames[tIdx];
 
-    // Homeroom assignment
-    teachersData.push({
-      name: `${fn} ${ln}`,
-      email: `${fn.toLowerCase()}.${ln.toLowerCase()}@keraschool.et`,
-      phone: `+2519${String(11000000 + tIdx * 98765).slice(-8)}`,
-      qualification: "BEd Education",
-      assignedGrade: grade,
-      assignedSection: section,
-      experience: tIdx % 4 === 0 ? 0 : tIdx % 3 === 0 ? 2 : tIdx % 2 === 0 ? 5 : 10
-    });
+  // Distribute homeroom grades and sections across the 16 teachers
+  const gradeIdx = Math.floor(tIdx / 4);
+  const secIdx = tIdx % 4;
+  const grade = grades[gradeIdx];
+  const section = sections[secIdx];
 
-    const subName = subjectNames[tIdx];
-    const subCode = subjectCodes[tIdx];
+  teachersData.push({
+    name: `${fn} ${ln}`,
+    email: `${fn.toLowerCase()}.${ln.toLowerCase()}@keraschool.et`,
+    phone: `+2519${String(11000000 + tIdx * 98765).slice(-8)}`,
+    qualification: "BEd Education",
+    assignedGrade: grade,
+    assignedSection: section,
+    experience: tIdx % 4 === 0 ? 0 : tIdx % 3 === 0 ? 2 : tIdx % 2 === 0 ? 5 : 10
+  });
 
-    // Assign 2 to 3 random sections to prove homeroom decoupling
-    const shuffledSections = [...sections].sort(() => 0.5 - Math.random());
-    const assignedSections = shuffledSections.slice(0, tIdx % 2 === 0 ? 2 : 3).sort();
+  const subName = subjectNames[tIdx];
+  const subCode = subjectCodes[tIdx];
 
+  // Assign this subject to all grades so every student takes it
+  for (const g of grades) {
     subjectsData.push({
       name: subName,
       code: subCode,
-      grade: grade,
-      sections: assignedSections,
+      grade: g,
+      sections: [...sections],
       teacherIndex: tIdx
     });
-
-    tIdx++;
   }
 }
 
@@ -187,13 +184,15 @@ async function seed() {
     const attendanceRecords = [];
     const marksRecords = [];
 
-    const today = new Date();
-    // 14 days back (skipping weekends roughly by just taking last 14 days)
-    const dates = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (13 - i));
-      return d;
-    });
+    const dates = [];
+    let current = new Date();
+    while (dates.length < 5) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) {
+        dates.unshift(new Date(current));
+      }
+      current.setDate(current.getDate() - 1);
+    }
 
     for (const student of studentsData) {
       // Find the actual DB record to get the _id
@@ -221,28 +220,29 @@ async function seed() {
           });
         }
 
-        // Generate Marks
-        marksRecords.push({
-          studentId: studentRecord._id,
-          subjectId: subject._id,
-          academicYear: "2026/2027",
-          semester: 1,
-          assessmentType: "midterm",
-          score: Math.floor(Math.random() * 20) + 10, // 10 to 30
-          maxScore: 30,
-          enteredBy: subject.teacherId
-        });
+        // Generate Marks for all 5 assessment types
+        const assessments = [
+          { type: "attendance", max: 10, minScore: 7 },
+          { type: "assignment", max: 10, minScore: 6 },
+          { type: "quiz", max: 10, minScore: 5 },
+          { type: "midterm", max: 20, minScore: 10 },
+          { type: "final", max: 50, minScore: 25 }
+        ];
 
-        marksRecords.push({
-          studentId: studentRecord._id,
-          subjectId: subject._id,
-          academicYear: "2026/2027",
-          semester: 1,
-          assessmentType: "final",
-          score: Math.floor(Math.random() * 40) + 30, // 30 to 70
-          maxScore: 70,
-          enteredBy: subject.teacherId
-        });
+        for (const ass of assessments) {
+          const score = Math.floor(Math.random() * (ass.max - ass.minScore + 1)) + ass.minScore;
+          marksRecords.push({
+            studentId: studentRecord._id,
+            subjectId: subject._id,
+            academicYear: "2026/2027",
+            semester: 1,
+            assessmentType: ass.type,
+            score: score,
+            maxScore: ass.max,
+            enteredBy: subject.teacherId,
+            remarks: "Seeded"
+          });
+        }
       }
     }
 

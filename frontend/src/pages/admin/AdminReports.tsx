@@ -59,17 +59,17 @@ export default function AdminReports() {
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-up">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📈</div>
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><TrendingUp className="w-6 h-6 text-blue-500" /></div>
           <p className="text-3xl font-black text-slate-900">{averageSystemScore}%</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Average School Score</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">✅</div>
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><CheckCircle2 className="w-6 h-6 text-emerald-500" /></div>
           <p className="text-3xl font-black text-slate-900">{passRate}%</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Overall Pass Rate</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📝</div>
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><FileText className="w-6 h-6 text-purple-500" /></div>
           <p className="text-3xl font-black text-slate-900">{totalMarks}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Grades Recorded</p>
         </div>
@@ -210,7 +210,7 @@ export default function AdminReports() {
                     <tr key={r.id} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{r.format === 'PDF' ? '📕' : '📊'}</span>
+                          <span className="text-xl">{r.format === 'PDF' ? <FileText className="w-5 h-5 text-red-500" /> : <BarChart3 className="w-5 h-5 text-blue-500" />}</span>
                           <div>
                             <p className="text-sm font-extrabold text-slate-900">{r.title}</p>
                             <span className="text-[10px] font-mono text-slate-400 mt-0.5">{r.id}</span>

@@ -16,6 +16,9 @@ const userSchema = new mongoose.Schema(
     // Profile Customization
     avatar: { type: String, default: "" },
     coverPhoto: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    address: { type: String, default: "" },
+    bio: { type: String, default: "" },
     // Identity Verification
     verificationQuestions: [
       {
@@ -40,8 +43,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
+
 userSchema.index({ refId: 1 });
 userSchema.index({ isDeleted: 1 });
 

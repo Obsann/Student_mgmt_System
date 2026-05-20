@@ -40,7 +40,7 @@ export default function AdminSettings() {
     <div className="max-w-3xl space-y-6 animate-fade-in">
       {/* Welcome & Context */}
       <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex items-center gap-4 animate-fade-up">
-        <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-xl shrink-0">⚙️</div>
+        <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-xl shrink-0"><Settings className="w-6 h-6 text-amber-500" /></div>
         <div>
           <h2 className="text-lg font-black text-slate-900">System Preferences</h2>
           <p className="text-sm font-semibold text-slate-500 mt-0.5">Control the central academic calendars, parameters and backups of Kera High School.</p>

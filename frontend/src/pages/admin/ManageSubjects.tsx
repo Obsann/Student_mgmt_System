@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Plus, Pencil, Search, X, Save } from "lucide-react";
+import { BookOpen, Plus, Pencil, Search, X, Save, CheckCircle2, Building2, Clock } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
 import EmptyState from "../../components/EmptyState";
 import ConfirmationDialog from "../../components/ConfirmationDialog";
@@ -113,22 +113,22 @@ export default function ManageSubjects() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📚</div>
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><BookOpen className="w-6 h-6 text-purple-500" /></div>
           <p className="text-3xl font-black text-slate-900">{state.subjects.length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Subjects</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">✅</div>
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><CheckCircle2 className="w-6 h-6 text-emerald-500" /></div>
           <p className="text-3xl font-black text-slate-900">{state.subjects.length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Active</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🏢</div>
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><Building2 className="w-6 h-6 text-blue-500" /></div>
           <p className="text-3xl font-black text-slate-900">{departments.length || 1}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Departments</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">⏱️</div>
+          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><Clock className="w-6 h-6 text-amber-500" /></div>
           <p className="text-3xl font-black text-slate-900">{totalPeriods}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Weekly Periods</p>
         </div>

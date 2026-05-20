@@ -46,17 +46,17 @@ export default function AdminAuditLogs() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-up">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">📜</div>
+          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><ScrollText className="w-6 h-6 text-amber-500" /></div>
           <p className="text-3xl font-black text-slate-900">{logs.length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Logs</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">👥</div>
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><Users className="w-6 h-6 text-blue-500" /></div>
           <p className="text-3xl font-black text-slate-900">{uniqueUsers}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Active Users</p>
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 group hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🏢</div>
+          <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform"><Building2 className="w-6 h-6 text-purple-500" /></div>
           <p className="text-3xl font-black text-slate-900">{uniqueEntities.length}</p>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Monitored Modules</p>
         </div>

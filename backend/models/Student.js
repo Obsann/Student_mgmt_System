@@ -47,7 +47,7 @@ const studentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-studentSchema.index({ faydaId: 1 });
+
 studentSchema.index({ grade: 1, section: 1 });
 studentSchema.index({ isDeleted: 1 });
 

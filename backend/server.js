@@ -37,7 +37,10 @@ app.use(cors({
 
 // ─── Security Middleware ────────────────────────────────────────────────────
 app.use(helmet());
-app.use(compression());
+app.use(compression({
+  level: 6,
+  threshold: 0
+}));
 app.use(mongoSanitize());
 
 const limiter = rateLimit({

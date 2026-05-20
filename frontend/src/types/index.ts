@@ -104,6 +104,9 @@ export interface User {
   ref_id: string;
   avatar?: string;
   verificationQuestions?: {question: string, answer: string}[];
+  phone?: string;
+  address?: string;
+  bio?: string;
 }
 
 export interface AppState {
@@ -172,6 +175,9 @@ export interface ApiUser {
   refId?: string;
   avatar?: string;
   verificationQuestions?: {question: string, answer: string}[];
+  phone?: string;
+  address?: string;
+  bio?: string;
 }
 
 export interface LoginResponse {

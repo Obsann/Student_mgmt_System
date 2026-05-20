@@ -39,6 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avatar: (user as any).avatar,
             coverPhoto: (user as any).coverPhoto,
             verificationQuestions: (user as any).verificationQuestions,
+            recoveryEmail: (user as any).recoveryEmail,
+            phone: (user as any).phone,
+            address: (user as any).address,
+            bio: (user as any).bio,
           } as any);
         }
       } catch (err) {
@@ -71,7 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: user.name,
         email: user.email,
         ref_id: user.refId || "",
-      });
+        avatar: (user as any).avatar,
+        coverPhoto: (user as any).coverPhoto,
+        verificationQuestions: (user as any).verificationQuestions,
+        recoveryEmail: (user as any).recoveryEmail,
+        phone: (user as any).phone,
+        address: (user as any).address,
+        bio: (user as any).bio,
+      } as any);
       return null;
     } catch (err: unknown) {
       return err instanceof Error ? err.message : "Invalid username or password";
@@ -98,6 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: (user as any).avatar,
           coverPhoto: (user as any).coverPhoto,
           verificationQuestions: (user as any).verificationQuestions,
+          recoveryEmail: (user as any).recoveryEmail,
+          phone: (user as any).phone,
+          address: (user as any).address,
+          bio: (user as any).bio,
         } as any);
       }
     } catch (err) {

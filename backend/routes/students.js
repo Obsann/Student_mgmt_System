@@ -53,7 +53,12 @@ router.get("/", protect, async (req, res) => {
     // Students can only see themselves
     if (req.user.role === "student") {
       const student = await Student.findById(req.user.refId);
-      return res.json([student]);
+      return res.json({
+        data: student ? [student] : [],
+        total: student ? 1 : 0,
+        page: 1,
+        totalPages: 1
+      });
     }
 
     const page = parseInt(req.query.page, 10) || 1;

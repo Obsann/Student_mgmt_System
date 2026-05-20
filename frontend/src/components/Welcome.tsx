@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { GraduationCap, BookOpen, Users, ArrowRight, Trophy, ShieldCheck, CheckCircle, ChevronRight } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, ArrowRight, Trophy, ShieldCheck, CheckCircle, ChevronRight, Star } from 'lucide-react';
 
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -101,7 +101,7 @@ export default function Welcome() {
               {/* Main Card */}
               <div className="relative bg-white rounded-3xl p-8 shadow-2xl shadow-slate-200 border border-slate-100">
                 <h3 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">✨</span>
+                  <span className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><Star className="w-4 h-4 text-indigo-600" /></span>
                   What's Inside?
                 </h3>
                 

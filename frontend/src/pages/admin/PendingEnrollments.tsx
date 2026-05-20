@@ -79,7 +79,7 @@ export default function PendingEnrollments() {
                         <span className="bg-slate-50 text-slate-600 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">Grade {s.grade}-{s.section}</span>
                         <span className="bg-slate-50 text-slate-600 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">Roll {s.roll_number}</span>
                         <span className="bg-slate-50 text-slate-600 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">{s.gender} • {s.age} yrs</span>
-                        <span className="bg-slate-50 text-slate-600 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">📞 {s.parent_phone}</span>
+                        <span className="bg-slate-50 text-slate-600 px-2.5 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">Phone: {s.parent_phone}</span>
                       </div>
                     </div>
                   </div>

@@ -18,7 +18,7 @@ const teacherSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-teacherSchema.index({ email: 1 });
+
 teacherSchema.index({ assignedGrade: 1, assignedSection: 1 });
 teacherSchema.index({ department: 1 });
 teacherSchema.index({ isDeleted: 1 });

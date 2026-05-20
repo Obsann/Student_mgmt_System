@@ -7,7 +7,7 @@ import {
 import { useApp } from "../contexts/AppContext";
 import ProfilePage from "./ProfilePage";
 import StudentRegistrationForm from "../components/StudentRegistrationForm";
-import { getEthiopianGrade } from "../utils/gradeCalculator";
+import Pagination from "../components/Pagination";
 
 // ============================================================
 // TEACHER DASHBOARD
@@ -174,6 +174,8 @@ function TakeAttendance() {
   const [records, setRecords] = useState<Record<string, "present" | "absent" | "late" | "excused">>({});
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const teacher = state.teachers.find((t) => t.id === teacherId);
@@ -261,7 +263,7 @@ function TakeAttendance() {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     const ds = d.toISOString().split("T")[0];
-    const recs = state.attendance.filter(a => a.date === ds && a.subject_id === selectedSubject);
+    const recs = state.attendance.filter(a => a.date.startsWith(ds) && a.subject_id === selectedSubject);
     const p = recs.filter(r => r.status === 'present').length;
     const a = recs.filter(r => r.status === 'absent').length;
     const l = recs.filter(r => r.status === 'late').length;
@@ -319,7 +321,7 @@ function TakeAttendance() {
 
         <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
           <div className="text-[10px] text-blue-600 bg-blue-50 px-3 py-1 rounded-lg font-bold uppercase tracking-widest">
-            ⌨️ Shortcuts: P (Present), A (Absent), L (Late), ↑↓ (Navigate)
+            Shortcuts: P (Present), A (Absent), L (Late), ↑↓ (Navigate)
           </div>
           {submitted && <div className="text-xs font-bold text-green-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Saved</div>}
         </div>
@@ -330,22 +332,23 @@ function TakeAttendance() {
           {/* Student List */}
           <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
             <div className="divide-y divide-slate-50 max-h-[600px] overflow-y-auto custom-scrollbar">
-              {students.map((student, index) => {
+              {students.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((student, index) => {
                 const status = records[student.id] || "present";
-                const isFocused = focusedIndex === index;
+                const absoluteIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
+                const isFocused = focusedIndex === absoluteIndex;
                 const initials = student.first_name[0] + student.last_name[0];
                 return (
                   <div
                     key={student.id}
-                    ref={(el) => { rowRefs.current[index] = el; }}
+                    ref={(el) => { rowRefs.current[absoluteIndex] = el; }}
                     tabIndex={0}
-                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    onKeyDown={(e) => handleKeyDown(e, absoluteIndex)}
                     onClick={() => cycleStatus(student.id)}
                     className={`flex items-center gap-4 px-6 py-4 cursor-pointer transition-all outline-none ${
                       isFocused ? "ring-2 ring-blue-400 ring-inset bg-blue-50/50" : "hover:bg-slate-50"
                     }`}
                   >
-                    <span className="w-6 text-center text-xs font-bold text-slate-400">{index + 1}</span>
+                    <span className="w-6 text-center text-xs font-bold text-slate-400">{absoluteIndex + 1}</span>
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 shrink-0">
                       {initials}
                     </div>
@@ -370,6 +373,19 @@ function TakeAttendance() {
                 </div>
               )}
             </div>
+            {/* Pagination Controls */}
+            {students.length > ITEMS_PER_PAGE && (
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(students.length / ITEMS_PER_PAGE)}
+                  onPageChange={setCurrentPage}
+                  showInfo={true}
+                  totalItems={students.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                />
+              </div>
+            )}
           </div>
 
           {/* Submit */}
@@ -458,6 +474,8 @@ function EnterMarks() {
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Load existing marks on mount or selected subject/section change
   useEffect(() => {
@@ -612,18 +630,6 @@ function EnterMarks() {
   const highest = enteredCount > 0 ? Math.max(...enteredTotals) : 0;
   const lowest = enteredCount > 0 ? Math.min(...enteredTotals) : 0;
 
-  // Grade Distribution
-  const dist = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-  enteredStudents.forEach(s => {
-    const p = getStudentPercentage(s.id);
-    if (p >= 90) dist.A++;
-    else if (p >= 80) dist.B++;
-    else if (p >= 60) dist.C++;
-    else if (p >= 50) dist.D++;
-    else dist.F++;
-  });
-  const maxDist = Math.max(dist.A, dist.B, dist.C, dist.D, dist.F, 1);
-
   return (
     <div className="space-y-6">
       {/* Stat Cards */}
@@ -748,21 +754,21 @@ function EnterMarks() {
                       </div>
                     </th>
                     <th className="py-4 px-4 text-center w-20">Total ({maxTotalScore})</th>
-                    <th className="py-4 px-4 text-center w-16">Grade</th>
+                    <th className="py-4 px-4 text-center w-24">Percent</th>
                     <th className="py-4 px-4 text-left">Remark</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {students.map((student, i) => {
+                  {students.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((student, index) => {
                     const sScores = scores[student.id] || {};
                     const total = getStudentTotal(student.id);
                     const percent = getStudentPercentage(student.id);
-                    const gradeInfo = percent !== null ? getEthiopianGrade(percent) : null;
                     const isRowSaved = saved[student.id];
+                    const absoluteIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
 
                     return (
                       <tr key={student.id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="py-3 px-4 text-center text-xs font-bold text-slate-400">{i + 1}</td>
+                        <td className="py-3 px-4 text-center text-xs font-bold text-slate-400">{absoluteIndex + 1}</td>
                         <td className="py-3 px-4 font-mono text-xs text-slate-600">{student.roll_number}</td>
                         <td className="py-3 px-4">
                           <div className="font-extrabold text-slate-900 leading-tight">{student.first_name} {student.last_name}</div>
@@ -851,13 +857,11 @@ function EnterMarks() {
                           {total}
                         </td>
 
-                        {/* Grade */}
+                        {/* Percent */}
                         <td className="py-3 px-4 text-center">
-                          {gradeInfo ? (
-                            <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black mx-auto shadow-sm ${gradeInfo.color}`}>
-                              {gradeInfo.grade}
-                            </span>
-                          ) : <span className="text-slate-300 font-bold">—</span>}
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-black mx-auto shadow-sm ${percent >= 70 ? 'bg-green-100 text-green-700' : percent >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                            {Math.round(percent)}%
+                          </span>
                         </td>
 
                         {/* Remarks */}
@@ -882,6 +886,19 @@ function EnterMarks() {
                 </div>
               )}
             </div>
+            {/* Pagination Controls */}
+            {students.length > ITEMS_PER_PAGE && (
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(students.length / ITEMS_PER_PAGE)}
+                  onPageChange={setCurrentPage}
+                  showInfo={true}
+                  totalItems={students.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -901,27 +918,7 @@ function EnterMarks() {
             </button>
           )}
 
-          {/* Grade Distribution */}
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm sticky top-24">
-            <h3 className="font-extrabold text-slate-900 mb-6 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-purple-500"/> Distribution</h3>
-            <div className="space-y-4">
-              {[
-                { g: 'A', c: dist.A, col: 'bg-green-500' },
-                { g: 'B', c: dist.B, col: 'bg-blue-500' },
-                { g: 'C', c: dist.C, col: 'bg-yellow-500' },
-                { g: 'D', c: dist.D, col: 'bg-orange-500' },
-                { g: 'F', c: dist.F, col: 'bg-red-500' }
-              ].map(item => (
-                <div key={item.g} className="flex items-center gap-3">
-                  <div className="w-6 font-black text-slate-600">{item.g}</div>
-                  <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${item.col} transition-all duration-1000`} style={{ width: `${(item.c/maxDist)*100}%` }}></div>
-                  </div>
-                  <div className="w-6 text-right font-bold text-slate-400 text-sm">{item.c}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -940,6 +937,8 @@ function ViewStudents() {
   const [viewMode, setViewMode] = useState<"grid"|"list">("list");
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [modalTab, setModalTab] = useState<"info" | "academic" | "attendance" | "address" | "parent">("info");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   const teacher = state.teachers.find((t) => t.id === teacherId);
   
@@ -960,6 +959,12 @@ function ViewStudents() {
     s.last_name.toLowerCase().includes(search.toLowerCase()) ||
     s.roll_number.toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedSubject, selectedSection]);
 
   useEffect(() => {
     if (selectedStudent) {
@@ -1032,10 +1037,9 @@ function ViewStudents() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredStudents.map((student) => {
+                {paginatedStudents.map((student) => {
                   const marks = state.marks.filter((m) => m.student_id === student.id && m.subject_id === selectedSubject);
                   const avg = marks.length > 0 ? Math.round(marks.reduce((sum, m) => sum + (m.score/(m.max_score||100))*100, 0) / marks.length) : 0;
-                  const grade = getEthiopianGrade(avg);
                   return (
                     <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-6">
@@ -1052,9 +1056,8 @@ function ViewStudents() {
                       </td>
                       <td className="py-4 px-6 text-center">
                          {marks.length > 0 ? (
-                           <div className="inline-flex items-center gap-2">
-                             <span className="font-bold text-slate-900">{avg}%</span>
-                             <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${grade.color}`}>{grade.grade}</span>
+                           <div className="inline-flex items-center justify-center">
+                             <span className={`px-3 py-1 rounded-xl text-xs font-black ${avg >= 70 ? 'bg-green-100 text-green-700' : avg >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{avg}%</span>
                            </div>
                          ) : <span className="text-slate-300 font-bold">—</span>}
                       </td>
@@ -1072,10 +1075,9 @@ function ViewStudents() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredStudents.map((student) => {
+          {paginatedStudents.map((student) => {
              const marks = state.marks.filter((m) => m.student_id === student.id && m.subject_id === selectedSubject);
              const avg = marks.length > 0 ? Math.round(marks.reduce((sum, m) => sum + (m.score/(m.max_score||100))*100, 0) / marks.length) : 0;
-             const grade = getEthiopianGrade(avg);
              return (
               <div key={student.id} onClick={() => setSelectedStudent(student)} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group">
                  <div className="flex justify-between items-start mb-4">
@@ -1089,15 +1091,28 @@ function ViewStudents() {
                  <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                     <div className="text-xs font-mono text-slate-400">{student.roll_number}</div>
                     {marks.length > 0 ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-black text-slate-900">{avg}%</span>
-                        <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${grade.color}`}>{grade.grade}</span>
-                      </div>
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${avg >= 70 ? 'bg-green-100 text-green-700' : avg >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                        {avg}%
+                      </span>
                     ) : <span className="text-xs font-bold text-slate-300">No marks</span>}
                  </div>
               </div>
              )
           })}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredStudents.length > ITEMS_PER_PAGE && (
+        <div className="px-6 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredStudents.length / ITEMS_PER_PAGE)}
+            onPageChange={setCurrentPage}
+            showInfo={true}
+            totalItems={filteredStudents.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+          />
         </div>
       )}
 
@@ -1235,8 +1250,8 @@ function ViewStudents() {
                        <thead>
                          <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase">
                            <th className="py-2.5 px-4 text-left">Subject</th>
-                           <th className="py-2.5 px-4 text-center">Total (100%)</th>
-                           <th className="py-2.5 px-4 text-center">Grade</th>
+                           <th className="py-2.5 px-4 text-center">Total Score</th>
+                           <th className="py-2.5 px-4 text-center">Percent</th>
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-50 text-slate-700 font-medium">
@@ -1248,15 +1263,14 @@ function ViewStudents() {
 
                            const total = sMarks.reduce((sum, m) => sum + m.score, 0);
                            const percent = sMarks.length > 0 ? (total / sMarks.reduce((sum, m) => sum + (m.max_score || 100), 0)) * 100 : 0;
-                           const gradeInfo = sMarks.length > 0 ? getEthiopianGrade(percent) : null;
 
                            return (
                              <tr key={subject.id} className="hover:bg-slate-50">
                                <td className="py-3 px-4 text-slate-900 font-bold">{subject.name}</td>
-                               <td className="py-3 px-4 text-center font-mono font-bold">{sMarks.length > 0 ? `${total}%` : "—"}</td>
+                               <td className="py-3 px-4 text-center font-mono font-bold">{sMarks.length > 0 ? `${total}` : "—"}</td>
                                <td className="py-3 px-4 text-center">
-                                 {gradeInfo ? (
-                                   <span className={`px-2 py-0.5 rounded text-[10px] font-black inline-block ${gradeInfo.color}`}>{gradeInfo.grade}</span>
+                                 {sMarks.length > 0 ? (
+                                   <span className={`px-2 py-0.5 rounded text-[10px] font-black inline-block ${percent >= 70 ? 'bg-green-100 text-green-700' : percent >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{Math.round(percent)}%</span>
                                  ) : <span className="text-slate-300 font-bold">—</span>}
                                </td>
                              </tr>

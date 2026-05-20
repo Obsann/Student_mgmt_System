@@ -1,10 +1,11 @@
 import { useState } from "react";
 import {
-  User, BookOpen, TrendingUp, Calendar, Award,
+  User, BookOpen, TrendingUp, Calendar, Award, ChevronLeft, ChevronRight, LayoutGrid, List
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { useApp } from "../contexts/AppContext";
 import ProfilePage from "./ProfilePage";
-import { getEthiopianGrade } from "../utils/gradeCalculator";
+import Pagination from "../components/Pagination";
 import { CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
 
 // ============================================================
@@ -15,18 +16,42 @@ function StudentDashboard() {
   const studentId = currentUser?.ref_id || "";
   const student = state.students.find((s) => s.id === studentId);
   const myMarks = getMarksForStudent(studentId);
-  const myAttendance = getAttendanceForStudent(studentId);
+  
+  // Filter attendance to weekdays only
+  const rawAttendance = getAttendanceForStudent(studentId);
+  const myAttendance = rawAttendance.filter((a) => {
+    const d = new Date(a.date);
+    const day = d.getDay();
+    return day !== 0 && day !== 6; // 0 Sunday, 6 Saturday
+  });
 
-  const avgScore = myMarks.length > 0
-    ? Math.round(myMarks.reduce((sum, m) => sum + m.score, 0) / myMarks.length)
+  // Get all subjects matching student's grade & section
+  const studentSubjects = state.subjects.filter(
+    (sub) => sub.grade === student?.grade && sub.sections?.includes(student?.section)
+  );
+
+  // Group marks by subject and calculate percentage for each subject
+  const subjectPercentages = studentSubjects.map((sub) => {
+    const subMarks = myMarks.filter((m) => m.subject_id === sub.id);
+    if (subMarks.length === 0) return 0;
+    const totalScore = subMarks.reduce((sum, m) => sum + m.score, 0);
+    const totalMax = subMarks.reduce((sum, m) => sum + (m.max_score || 100), 0);
+    return totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
+  });
+
+  // Calculate overall average percent across all subjects the student takes
+  const avgScore = studentSubjects.length > 0
+    ? Math.round(subjectPercentages.reduce((sum, pct) => sum + pct, 0) / studentSubjects.length)
     : 0;
+
+  // Academic status is visible only after all marks are entered (i.e. every subject has at least one mark)
+  const gradedSubjectIds = new Set(myMarks.map((m) => m.subject_id));
+  const allMarksEntered = studentSubjects.length > 0 && studentSubjects.every((sub) => gradedSubjectIds.has(sub.id));
 
   const presentCount = myAttendance.filter((a) => a.status === "present").length;
   const attendanceRate = myAttendance.length > 0
     ? Math.round((presentCount / myAttendance.length) * 100)
     : 0;
-
-  const grade = myMarks.length > 0 ? getEthiopianGrade(avgScore) : { grade: "N/A", color: "text-slate-600 bg-slate-50" };
 
   return (
     <div className="space-y-6">
@@ -74,10 +99,10 @@ function StudentDashboard() {
         </div>
         <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-2xl ${grade.color.split(" ")[1]} ${grade.color.split(" ")[0]}`}><Award size={20} /></div>
+            <div className={`p-3 rounded-2xl bg-indigo-50 text-indigo-600`}><Award size={20} /></div>
             <div>
-              <div className={`text-2xl font-black leading-none ${grade.color.split(" ")[0]}`}>{grade.grade}</div>
-              <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Letter Grade</div>
+              <div className={`text-2xl font-black leading-none text-indigo-600`}>{avgScore}%</div>
+              <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Overall Percent</div>
             </div>
           </div>
         </div>
@@ -118,7 +143,7 @@ function StudentDashboard() {
           <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white">
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Academic Status</div>
             <div className="font-black text-slate-800 text-lg">
-              {myMarks.length === 0 ? "New Student" : avgScore >= 50 ? "Pass" : "Fail"}
+              {allMarksEntered ? (avgScore >= 50 ? "Pass" : "Fail") : "Pending"}
             </div>
           </div>
         </div>
@@ -128,56 +153,54 @@ function StudentDashboard() {
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <h3 className="text-sm font-bold text-gray-900 mb-4">Subject Performance Overview</h3>
         <div className="space-y-3">
-          {(() => {
-            const subjects = [...new Set(myMarks.map((m) => m.subject_id))];
-            return subjects.map((subId) => {
-              const sub = state.subjects.find((s) => s.id === subId);
-              const subMarks = myMarks.filter((m) => m.subject_id === subId);
-              const avg = Math.round(subMarks.reduce((s, m) => s + m.score, 0) / subMarks.length);
-              return (
-                <div key={subId} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600 w-32 truncate font-medium">{sub?.name || "Unknown"}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${avg >= 70 ? "bg-green-500" : avg >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
-                      style={{ width: `${avg}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-bold w-10 text-right text-gray-700">{avg}%</span>
+          {studentSubjects.map((sub) => {
+            const subMarks = myMarks.filter((m) => m.subject_id === sub.id);
+            const totalScore = subMarks.reduce((sum, m) => sum + m.score, 0);
+            const totalMax = subMarks.reduce((sum, m) => sum + (m.max_score || 100), 0);
+            const avg = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+            return (
+              <div key={sub.id} className="flex items-center gap-3">
+                <span className="text-xs text-gray-600 w-32 truncate font-medium">{sub.name}</span>
+                <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${subMarks.length === 0 ? "bg-slate-300" : avg >= 70 ? "bg-green-500" : avg >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
+                    style={{ width: `${subMarks.length === 0 ? 0 : avg}%` }}
+                  />
                 </div>
-              );
-            });
-          })()}
-          {myMarks.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">No marks recorded yet</p>
+                <span className="text-xs font-bold w-10 text-right text-gray-700">{subMarks.length === 0 ? "N/A" : `${avg}%`}</span>
+              </div>
+            );
+          })}
+          {studentSubjects.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">No subjects assigned for your grade & section</p>
           )}
         </div>
-
-        {myMarks.length > 0 && (
-          <div className="mt-8">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Performance Trend</h4>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={(() => {
-                  const subjects = [...new Set(myMarks.map((m) => m.subject_id))];
-                  return subjects.map((subId) => {
-                    const sub = state.subjects.find((s) => s.id === subId);
-                    const subMarks = myMarks.filter((m) => m.subject_id === subId);
-                    const avg = Math.round(subMarks.reduce((s, m) => s + m.score, 0) / subMarks.length);
-                    return { name: sub?.name?.substring(0, 3) || "Unk", score: avg };
-                  });
-                })()}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} domain={[0, 100]} />
-                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="score" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Performance Trend chart */}
+      {myMarks.length > 0 && (
+        <div className="mt-8">
+          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Performance Trend</h4>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={studentSubjects.map((sub) => {
+                const subMarks = myMarks.filter((m) => m.subject_id === sub.id);
+                if (subMarks.length === 0) return { name: sub.name.substring(0, 3), score: 0 };
+                const totalScore = subMarks.reduce((sum, m) => sum + m.score, 0);
+                const totalMax = subMarks.reduce((sum, m) => sum + (m.max_score || 100), 0);
+                const avg = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+                return { name: sub.name.substring(0, 3), score: avg };
+              })}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} domain={[0, 100]} />
+                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="score" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Profile & Account Details */}
       {student && (
@@ -232,94 +255,243 @@ function StudentDashboard() {
 function MyMarks() {
   const { currentUser, state, getMarksForStudent } = useApp();
   const studentId = currentUser?.ref_id || "";
+  const student = state.students.find((s) => s.id === studentId);
   const myMarks = getMarksForStudent(studentId);
-  const [subjectFilter, setSubjectFilter] = useState("");
 
-  const subjects = [...new Set(myMarks.map((m) => m.subject_id))];
+  // Get all subjects matching student's grade & section
+  const studentSubjects = state.subjects.filter(
+    (sub) => sub.grade === student?.grade && sub.sections?.includes(student?.section)
+  );
 
+  // Group marks by subject and calculate percentage for each subject
+  const subjectPercentages = studentSubjects.map((sub) => {
+    const subMarks = myMarks.filter((m) => m.subject_id === sub.id);
+    if (subMarks.length === 0) return 0;
+    const totalScore = subMarks.reduce((sum, m) => sum + m.score, 0);
+    const totalMax = subMarks.reduce((sum, m) => sum + (m.max_score || 100), 0);
+    return totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
+  });
 
-  // Group by subject
-  const grouped = subjects
-    .filter((sId) => !subjectFilter || sId === subjectFilter)
-    .map((subId) => {
-      const sub = state.subjects.find((s) => s.id === subId);
-      const marks = myMarks.filter((m) => m.subject_id === subId);
-      const avg = marks.length > 0 ? Math.round(marks.reduce((s, m) => s + m.score, 0) / marks.length) : 0;
-      return { subId, subject: sub, marks, avg };
+  // Calculate overall average percent across all subjects the student takes
+  const avgScore = studentSubjects.length > 0
+    ? Math.round(subjectPercentages.reduce((sum, pct) => sum + pct, 0) / studentSubjects.length)
+    : 0;
+
+  const gradedSubjectIds = new Set(myMarks.map((m) => m.subject_id));
+  const allMarksEntered = studentSubjects.length > 0 && studentSubjects.every((sub) => gradedSubjectIds.has(sub.id));
+
+  const downloadPDFTranscript = () => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
     });
 
+    const navy = [15, 23, 42];
+    const slate = [100, 116, 139];
+    const border = [226, 232, 240];
+
+    // Page Border
+    doc.setDrawColor(navy[0], navy[1], navy[2]);
+    doc.setLineWidth(0.5);
+    doc.rect(5, 5, 200, 287);
+
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text("KERA HIGH SCHOOL", 105, 20, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(slate[0], slate[1], slate[2]);
+    doc.text("Official Academic Transcript • Addis Ababa, Ethiopia", 105, 25, { align: "center" });
+
+    doc.setDrawColor(border[0], border[1], border[2]);
+    doc.setLineWidth(0.5);
+    doc.line(15, 30, 195, 30);
+
+    // Student Info
+    doc.setFontSize(11);
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT PROFILE", 15, 38);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Full Name: ${student?.first_name} ${student?.last_name}`, 15, 45);
+    doc.text(`Roll Number: ${student?.roll_number}`, 15, 51);
+    doc.text(`Grade & Section: Grade ${student?.grade}${student?.section}`, 15, 57);
+
+    doc.text(`Academic Year: 2026/2027`, 120, 45);
+    doc.text(`Semester: Semester 1`, 120, 51);
+    doc.text(`Issue Date: ${new Date().toLocaleDateString()}`, 120, 57);
+
+    // Table Header
+    const tableTop = 68;
+    doc.setFillColor(navy[0], navy[1], navy[2]);
+    doc.rect(15, tableTop, 180, 8, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text("Subject/Course", 17, tableTop + 5.5);
+    doc.text("Att. (10)", 70, tableTop + 5.5);
+    doc.text("Ass. (10)", 90, tableTop + 5.5);
+    doc.text("Quiz (10)", 110, tableTop + 5.5);
+    doc.text("Mid (20)", 130, tableTop + 5.5);
+    doc.text("Final (50)", 150, tableTop + 5.5);
+    doc.text("Total (100)", 175, tableTop + 5.5);
+
+    let currentY = tableTop + 8;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+
+    studentSubjects.forEach((sub, index) => {
+      const marks = myMarks.filter(m => m.subject_id === sub.id);
+      const att = marks.find(m => m.assessment_type === "attendance")?.score ?? "-";
+      const ass = marks.find(m => m.assessment_type === "assignment")?.score ?? "-";
+      const quiz = marks.find(m => m.assessment_type === "quiz")?.score ?? "-";
+      const mid = marks.find(m => m.assessment_type === "midterm")?.score ?? "-";
+      const fnl = marks.find(m => m.assessment_type === "final")?.score ?? "-";
+
+      const hasMarks = marks.length > 0;
+      const totalScore = hasMarks ? (Number(att) || 0) + (Number(ass) || 0) + (Number(quiz) || 0) + (Number(mid) || 0) + (Number(fnl) || 0) : "-";
+
+      if (index % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(15, currentY, 180, 7, "F");
+      }
+
+      doc.setDrawColor(border[0], border[1], border[2]);
+      doc.line(15, currentY + 7, 195, currentY + 7);
+
+      doc.text(sub.name, 17, currentY + 5);
+      doc.text(String(att), 75, currentY + 5, { align: "center" });
+      doc.text(String(ass), 95, currentY + 5, { align: "center" });
+      doc.text(String(quiz), 115, currentY + 5, { align: "center" });
+      doc.text(String(mid), 135, currentY + 5, { align: "center" });
+      doc.text(String(fnl), 155, currentY + 5, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      doc.text(String(totalScore), 180, currentY + 5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+
+      currentY += 7;
+    });
+
+    // Summary Box
+    currentY += 10;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(15, currentY, 180, 20, "F");
+    doc.setDrawColor(border[0], border[1], border[2]);
+    doc.rect(15, currentY, 180, 20, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`Overall Average Percent: ${avgScore}%`, 20, currentY + 8);
+    doc.text(`Academic Status: ${allMarksEntered ? (avgScore >= 50 ? "PASS" : "FAIL") : "PENDING"}`, 20, currentY + 14);
+
+    doc.text("Grading Scale:", 120, currentY + 8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Pass: >= 50%   Fail: < 50%", 120, currentY + 14);
+
+    // Signatures
+    currentY += 40;
+    doc.line(20, currentY, 80, currentY);
+    doc.text("Homeroom Teacher Signature", 22, currentY + 5);
+
+    doc.line(130, currentY, 190, currentY);
+    doc.text("School Principal Stamp", 137, currentY + 5);
+
+    doc.save(`Transcript_${student?.first_name}_${student?.last_name}.pdf`);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <select
-          value={subjectFilter}
-          onChange={(e) => setSubjectFilter(e.target.value)}
-          className="w-full sm:w-auto px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900"
-        >
-          <option value="">All Subjects</option>
-          {subjects.map((subId) => {
-            const sub = state.subjects.find((s) => s.id === subId);
-            return <option key={subId} value={subId}>{sub?.name || "Unknown"}</option>;
-          })}
-        </select>
-        
+    <div className="space-y-6">
+      <div className="bg-white rounded-3xl border border-slate-100 p-6 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm animate-fade-in">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">My Assessment Grades</h2>
+          <p className="text-xs text-slate-400 mt-1 font-medium">View detailed breakdown of your academic performances across all subjects.</p>
+        </div>
         <button 
-          onClick={() => {
-            // Simulated PDF download
-            const blob = new Blob(["Transcript for " + (currentUser?.name || "Student")], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `Transcript_${currentUser?.name?.replace(/\s+/g, '_')}.txt`;
-            a.click();
-          }}
-          className="w-full sm:w-auto px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-sm rounded-xl hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"
+          onClick={downloadPDFTranscript}
+          className="w-full sm:w-auto px-5 py-3 bg-indigo-600 text-white font-bold text-sm rounded-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20"
         >
-          <Award size={16} /> Download Transcript
+          <Award size={18} /> Download PDF Transcript
         </button>
       </div>
 
-      {grouped.map(({ subId, subject, marks, avg }) => (
-        <div key={subId} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
-          <div className="p-5 flex items-center justify-between bg-slate-50 border-b border-slate-100">
-            <div>
-              <h3 className="font-black text-slate-900 text-base">{subject?.name || "Unknown"}</h3>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-1 inline-block">Grade {subject?.grade} • {marks.length} assessments</span>
-            </div>
-            <div className={`text-2xl font-black px-3 py-1.5 rounded-xl border ${avg >= 70 ? "text-green-600 bg-green-50 border-green-100" : avg >= 50 ? "text-yellow-600 bg-yellow-50 border-yellow-100" : "text-red-600 bg-red-50 border-red-100"}`}>
-              {avg}%
-            </div>
-          </div>
-          <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {marks.map((m) => (
-              <div
-                key={m.id}
-                className={`p-4 rounded-2xl text-center group hover:-translate-y-1 transition-all ${
-                  m.score >= 70 ? "bg-green-50 border border-green-100 hover:shadow-md hover:shadow-green-100" :
-                  m.score >= 50 ? "bg-yellow-50 border border-yellow-100 hover:shadow-md hover:shadow-yellow-100" :
-                  "bg-red-50 border border-red-100 hover:shadow-md hover:shadow-red-100"
-                }`}
-              >
-                <div className="text-[11px] font-bold text-slate-500 capitalize mb-2 uppercase tracking-wider">{m.assessment_type}</div>
-                <div className="flex items-baseline justify-center gap-1.5">
-                  <span className={`text-3xl font-black ${getEthiopianGrade(m.score).color.split(" ")[0]} group-hover:scale-110 transition-transform`}>
-                    {m.score}
-                  </span>
-                  <span className={`text-sm font-bold ${getEthiopianGrade(m.score).color.split(" ")[0]}`}>
-                    ({getEthiopianGrade(m.score).grade})
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+      <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[1000px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-black uppercase tracking-wider">
+                <th className="py-4 px-6 text-left">Subject/Course</th>
+                <th className="py-4 px-4 text-center">Attendance (10)</th>
+                <th className="py-4 px-4 text-center">Assignment (10)</th>
+                <th className="py-4 px-4 text-center">Quiz (10)</th>
+                <th className="py-4 px-4 text-center">Mid Exam (20)</th>
+                <th className="py-4 px-4 text-center">Final Exam (50)</th>
+                <th className="py-4 px-4 text-center">Total (100)</th>
+                <th className="py-4 px-4 text-center">Percent</th>
+                <th className="py-4 px-6 text-left">Remark</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {studentSubjects.map((sub) => {
+                const marks = myMarks.filter((m) => m.subject_id === sub.id);
+                const attMark = marks.find(m => m.assessment_type === "attendance")?.score;
+                const assMark = marks.find(m => m.assessment_type === "assignment")?.score;
+                const quizMark = marks.find(m => m.assessment_type === "quiz")?.score;
+                const midtermMark = marks.find(m => m.assessment_type === "midterm")?.score;
+                const finalMark = marks.find(m => m.assessment_type === "final")?.score;
 
-      {myMarks.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-400">
-          No marks have been recorded yet.
+                const hasMarks = marks.length > 0;
+                const total = hasMarks ? (Number(attMark) || 0) + (Number(assMark) || 0) + (Number(quizMark) || 0) + (Number(midtermMark) || 0) + (Number(finalMark) || 0) : 0;
+                
+                const maxTotal = (attMark !== undefined ? 10 : 0) + 
+                                 (assMark !== undefined ? 10 : 0) + 
+                                 (quizMark !== undefined ? 10 : 0) + 
+                                 (midtermMark !== undefined ? 20 : 0) + 
+                                 (finalMark !== undefined ? 50 : 0);
+
+                const percent = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
+                const remark = marks.find(m => m.remarks)?.remarks || "No comments";
+
+                return (
+                  <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-4 px-6 font-black text-slate-900">{sub.name}</td>
+                    <td className="py-4 px-4 text-center font-bold text-slate-600">{attMark !== undefined ? `${attMark}/10` : "-"}</td>
+                    <td className="py-4 px-4 text-center font-bold text-slate-600">{assMark !== undefined ? `${assMark}/10` : "-"}</td>
+                    <td className="py-4 px-4 text-center font-bold text-slate-600">{quizMark !== undefined ? `${quizMark}/10` : "-"}</td>
+                    <td className="py-4 px-4 text-center font-bold text-slate-600">{midtermMark !== undefined ? `${midtermMark}/20` : "-"}</td>
+                    <td className="py-4 px-4 text-center font-bold text-slate-600">{finalMark !== undefined ? `${finalMark}/50` : "-"}</td>
+                    <td className="py-4 px-4 text-center font-black text-slate-955">{hasMarks ? `${total}/${maxTotal}` : "-"}</td>
+                    <td className="py-4 px-4 text-center">
+                      {hasMarks ? (
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${
+                          percent >= 75 ? "bg-green-100 text-green-700" :
+                          percent >= 50 ? "bg-yellow-100 text-yellow-700" :
+                          "bg-red-100 text-red-700"
+                        }`}>
+                          {percent}%
+                        </span>
+                      ) : "-"}
+                    </td>
+                    <td className="py-4 px-6 text-slate-400 text-xs font-medium italic">{remark}</td>
+                  </tr>
+                );
+              })}
+              {studentSubjects.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-medium">
+                    No subjects assigned for your grade & section.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -330,7 +502,26 @@ function MyMarks() {
 function MyAttendance() {
   const { currentUser, state, getAttendanceForStudent } = useApp();
   const studentId = currentUser?.ref_id || "";
-  const myAttendance = getAttendanceForStudent(studentId);
+  const student = state.students.find((s) => s.id === studentId);
+  
+  // Get all subjects matching student's grade & section
+  const studentSubjects = state.subjects.filter(
+    (sub) => sub.grade === student?.grade && sub.sections?.includes(student?.section)
+  );
+
+  const rawAttendance = getAttendanceForStudent(studentId);
+  
+  // Only track weekdays (Monday to Friday)
+  const myAttendance = rawAttendance.filter((a) => {
+    const d = new Date(a.date);
+    const day = d.getDay();
+    return day !== 0 && day !== 6; // 0 Sunday, 6 Saturday
+  });
+
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 7;
 
   const total = myAttendance.length;
   const present = myAttendance.filter((a) => a.status === "present").length;
@@ -340,97 +531,249 @@ function MyAttendance() {
 
   // Group by date
   const byDate = myAttendance.reduce<Record<string, typeof myAttendance>>((acc, a) => {
-    if (!acc[a.date]) acc[a.date] = [];
-    acc[a.date].push(a);
+    const dStr = new Date(a.date).toISOString().split("T")[0];
+    if (!acc[dStr]) acc[dStr] = [];
+    acc[dStr].push(a);
     return acc;
   }, {});
 
   const sortedDates = Object.keys(byDate).sort().reverse();
+  const paginatedDates = sortedDates.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Generate weekday dates for selected week offset
+  const getWeekDays = (offset: number) => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 Sunday, 1 Monday, etc.
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + distanceToMonday + offset * 7);
+    
+    return Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  };
+
+  const weekDays = getWeekDays(weekOffset);
+  const weekStartStr = weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const weekEndStr = weekDays[4].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const statusColors = {
+    present: { bg: "bg-green-500", text: "text-white", label: "P" },
+    absent: { bg: "bg-red-500", text: "text-white", label: "A" },
+    late: { bg: "bg-yellow-500", text: "text-white", label: "L" },
+    excused: { bg: "bg-slate-400", text: "text-white", label: "E" },
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Header with Switcher */}
+      <div className="bg-white rounded-3xl border border-slate-100 p-5 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm animate-fade-in">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">My Attendance Portal</h2>
+          <p className="text-xs text-slate-400 mt-1 font-medium">Track your daily class presence during learning days (Monday to Friday).</p>
+        </div>
+        <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1 w-full sm:w-auto">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              viewMode === "list"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            <List size={14} /> List View
+          </button>
+          <button
+            onClick={() => setViewMode("calendar")}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              viewMode === "calendar"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            <LayoutGrid size={14} /> Calendar View
+          </button>
+        </div>
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
-          <div className="text-2xl font-black text-green-600">{rate}%</div>
-          <div className="text-[10px] text-green-500">Attendance Rate</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Attendance Rate</div>
+          <div className="text-3xl font-black text-indigo-600">{rate}%</div>
         </div>
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
-          <div className="text-2xl font-black text-blue-600">{present}</div>
-          <div className="text-[10px] text-blue-500">Present</div>
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Present Days</div>
+          <div className="text-3xl font-black text-green-600">{present}</div>
         </div>
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center">
-          <div className="text-2xl font-black text-red-600">{absent}</div>
-          <div className="text-[10px] text-red-500">Absent</div>
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Absent Days</div>
+          <div className="text-3xl font-black text-red-600">{absent}</div>
         </div>
-        <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 text-center">
-          <div className="text-2xl font-black text-yellow-600">{late}</div>
-          <div className="text-[10px] text-yellow-500">Late</div>
+        <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Late Days</div>
+          <div className="text-3xl font-black text-yellow-600">{late}</div>
         </div>
       </div>
 
-      {/* Calendar View */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden p-5">
-        <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Calendar size={16} className="text-blue-500" /> Attendance Calendar
-        </h3>
-        <div className="flex flex-wrap gap-1">
-          {sortedDates.map((date) => {
-            const records = byDate[date];
-            // If any record is absent, mark day as absent, else if late, late, else present
-            const isAbsent = records.some(r => r.status === 'absent');
-            const isLate = records.some(r => r.status === 'late');
-            const color = isAbsent ? 'bg-red-500' : isLate ? 'bg-yellow-500' : 'bg-green-500';
-            return (
-              <div 
-                key={date} 
-                title={`${date}: ${isAbsent ? 'Absent' : isLate ? 'Late' : 'Present'}`}
-                className={`w-6 h-6 rounded-sm ${color} opacity-80 hover:opacity-100 transition-opacity cursor-help`}
+      {viewMode === "calendar" ? (
+        /* Weekly Calendar View */
+        <div className="space-y-4 animate-fade-up">
+          <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setWeekOffset(w => w - 1)} 
+                className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-slate-600 transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="font-extrabold text-slate-900 text-sm min-w-[200px] text-center">
+                {weekStartStr} - {weekEndStr}
+              </span>
+              <button 
+                onClick={() => setWeekOffset(w => w + 1)} 
+                className="p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 text-slate-600 transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+              {weekOffset !== 0 && (
+                <button 
+                  onClick={() => setWeekOffset(0)} 
+                  className="px-3.5 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+                >
+                  Current Week
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-green-500"></div> Present</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-red-500"></div> Absent</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-yellow-500"></div> Late</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[800px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-black uppercase tracking-wider">
+                    <th className="py-4 px-6 text-left">Subject/Course</th>
+                    {weekDays.map((day) => {
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      return (
+                        <th 
+                          key={day.toISOString()} 
+                          className={`py-4 px-4 text-center w-28 ${isToday ? "bg-indigo-50/50 text-indigo-600" : ""}`}
+                        >
+                          <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
+                          <div className="text-sm mt-0.5">{day.getDate()}</div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {studentSubjects.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-6 font-black text-slate-900">{sub.name}</td>
+                      {weekDays.map((day) => {
+                        const dateStr = day.toISOString().split("T")[0];
+                        const dayRecords = byDate[dateStr] || [];
+                        const record = dayRecords.find((r) => r.subject_id === sub.id);
+                        
+                        return (
+                          <td key={day.toISOString()} className="py-3 px-4 text-center">
+                            {record ? (
+                              <div className="flex justify-center">
+                                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm ${
+                                  statusColors[record.status as keyof typeof statusColors]?.bg || "bg-slate-100"
+                                } ${
+                                  statusColors[record.status as keyof typeof statusColors]?.text || "text-slate-700"
+                                }`}>
+                                  {statusColors[record.status as keyof typeof statusColors]?.label || "?"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                  {studentSubjects.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                        No subjects assigned for your grade & section.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* List History View */
+        <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm animate-fade-up">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-100">
+            <h3 className="font-black text-slate-900 text-sm">Attendance History Log</h3>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {paginatedDates.map((date) => {
+              const records = byDate[date] || [];
+              return (
+                <div key={date} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
+                  <div className="text-xs font-bold text-slate-600">
+                    {new Date(date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {records.map((r) => {
+                      const sub = state.subjects.find((s) => s.id === r.subject_id);
+                      return (
+                        <span
+                          key={r.id}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                            r.status === "present" ? "bg-green-50 text-green-700 border-green-100" :
+                            r.status === "absent" ? "bg-red-50 text-red-700 border-red-100" :
+                            r.status === "late" ? "bg-yellow-50 text-yellow-700 border-yellow-100" :
+                            "bg-slate-50 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            r.status === "present" ? "bg-green-500" :
+                            r.status === "absent" ? "bg-red-500" :
+                            r.status === "late" ? "bg-yellow-500" :
+                            "bg-slate-400"
+                          }`}></span>
+                          {sub?.name || "Unknown"}: <span className="uppercase font-black">{r.status}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {sortedDates.length === 0 && (
+              <div className="py-16 text-center text-slate-400 text-sm font-medium">No weekday attendance records logged yet.</div>
+            )}
+          </div>
+          {sortedDates.length > ITEMS_PER_PAGE && (
+            <div className="bg-slate-50 border-t border-slate-100 p-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(sortedDates.length / ITEMS_PER_PAGE)}
+                onPageChange={setCurrentPage}
+                showInfo={true}
+                totalItems={sortedDates.length}
+                itemsPerPage={ITEMS_PER_PAGE}
               />
-            );
-          })}
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Attendance by Date */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900">Attendance History</h3>
-        </div>
-        <div className="divide-y divide-gray-50">
-          {sortedDates.map((date) => {
-            const records = byDate[date];
-            return (
-              <div key={date} className="px-4 py-3">
-                <div className="text-xs font-medium text-gray-500 mb-2">
-                  {new Date(date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {records.map((r) => {
-                    const sub = state.subjects.find((s) => s.id === r.subject_id);
-                    return (
-                      <span
-                        key={r.id}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${
-                          r.status === "present" ? "bg-green-50 text-green-700" :
-                          r.status === "absent" ? "bg-red-50 text-red-700" :
-                          r.status === "late" ? "bg-yellow-50 text-yellow-700" :
-                          "bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        {sub?.name || "Unknown"}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {sortedDates.length === 0 && (
-          <div className="py-12 text-center text-gray-400 text-sm">No attendance records yet.</div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

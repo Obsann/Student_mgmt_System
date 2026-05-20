@@ -59,6 +59,13 @@ router.post("/login", authLimiter, async (req, res) => {
         email: user.email,
         role: user.role,
         refId: user.refId,
+        avatar: user.avatar,
+        coverPhoto: user.coverPhoto,
+        recoveryEmail: user.recoveryEmail,
+        verificationQuestions: user.verificationQuestions,
+        phone: user.phone,
+        address: user.address,
+        bio: user.bio,
       },
     });
   } catch (err) {
@@ -127,10 +134,14 @@ router.put("/password", protect, async (req, res) => {
 // PUT /api/auth/profile — update profile info (authenticated)
 router.put("/profile", protect, upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'coverPhoto', maxCount: 1 }]), async (req, res) => {
   try {
-    const { name, email, verificationQuestions } = req.body;
+    const { name, email, recoveryEmail, phone, address, bio, verificationQuestions } = req.body;
     const updates = {};
     if (name) updates.name = name;
     if (email) updates.email = email;
+    if (recoveryEmail !== undefined) updates.recoveryEmail = recoveryEmail;
+    if (phone !== undefined) updates.phone = phone;
+    if (address !== undefined) updates.address = address;
+    if (bio !== undefined) updates.bio = bio;
     if (verificationQuestions) {
       try {
         updates.verificationQuestions = JSON.parse(verificationQuestions);
@@ -156,14 +167,34 @@ router.put("/profile", protect, upload.fields([{ name: 'avatar', maxCount: 1 }, 
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Sync avatar to refId if needed
-    if (updates.avatar && user.refId) {
+    // Sync avatar and other fields to refId if needed
+    if (user.refId) {
       if (user.role === "student") {
         const Student = require("../models/Student");
-        await Student.findByIdAndUpdate(user.refId, { avatar: updates.avatar });
+        const studentUpdates = {};
+        if (updates.avatar) studentUpdates.avatar = updates.avatar;
+        if (updates.recoveryEmail) studentUpdates.personalEmail = updates.recoveryEmail;
+        if (updates.address) {
+          const student = await Student.findById(user.refId);
+          if (student) {
+            studentUpdates.address = {
+              ...(student.address ? (typeof student.address.toObject === 'function' ? student.address.toObject() : student.address) : {}),
+              kebele: updates.address
+            };
+          }
+        }
+        if (Object.keys(studentUpdates).length > 0) {
+          await Student.findByIdAndUpdate(user.refId, studentUpdates);
+        }
       } else if (user.role === "teacher") {
         const Teacher = require("../models/Teacher");
-        await Teacher.findByIdAndUpdate(user.refId, { avatar: updates.avatar });
+        const teacherUpdates = {};
+        if (updates.avatar) teacherUpdates.avatar = updates.avatar;
+        if (updates.phone) teacherUpdates.phone = updates.phone;
+        if (updates.email) teacherUpdates.email = updates.email;
+        if (Object.keys(teacherUpdates).length > 0) {
+          await Teacher.findByIdAndUpdate(user.refId, teacherUpdates);
+        }
       }
     }
 

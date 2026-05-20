@@ -437,7 +437,7 @@ export default function ManageStudents() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewStudent(null)}>
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
             <div className="h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-3xl relative shrink-0">
-              <button onClick={() => setViewStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 hover:bg-black/20 rounded-xl flex items-center justify-center text-white transition-colors">✕</button>
+              <button onClick={() => setViewStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 hover:bg-black/20 rounded-xl flex items-center justify-center text-white transition-colors">X</button>
             </div>
             <div className="px-8 pb-8 -mt-10 overflow-y-auto custom-scrollbar flex-1">
               <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black shrink-0 ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>

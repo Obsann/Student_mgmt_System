@@ -11,9 +11,9 @@ export default function ProfilePage() {
     name: currentUser?.name || "",
     email: currentUser?.email || "Not Provided",
     recoveryEmail: (currentUser as any)?.recoveryEmail || "",
-    phone: "+251910000000",
-    address: "Kera, Addis Ababa",
-    bio: "Passionate about education and student success.",
+    phone: (currentUser as any)?.phone || "",
+    address: (currentUser as any)?.address || "",
+    bio: (currentUser as any)?.bio || "",
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -22,10 +22,12 @@ export default function ProfilePage() {
   const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>((currentUser as any)?.coverPhoto || null);
 
   const [verificationQuestions, setVerificationQuestions] = useState<{question: string, answer: string}[]>(
-    (currentUser as any)?.verificationQuestions || [
-      { question: "What is your mother's maiden name?", answer: "" },
-      { question: "What was the name of your first pet?", answer: "" }
-    ]
+    ((currentUser as any)?.verificationQuestions && (currentUser as any)?.verificationQuestions.length > 0)
+      ? (currentUser as any).verificationQuestions
+      : [
+          { question: "What is your mother's maiden name?", answer: "" },
+          { question: "What was the name of your first pet?", answer: "" }
+        ]
   );
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -40,14 +42,18 @@ export default function ProfilePage() {
         name: currentUser.name || "",
         email: currentUser.email || "Not Provided",
         recoveryEmail: (currentUser as any).recoveryEmail || "",
-        phone: "+251910000000",
-        address: "Kera, Addis Ababa",
-        bio: "Passionate about education and student success.",
+        phone: (currentUser as any).phone || "",
+        address: (currentUser as any).address || "",
+        bio: (currentUser as any).bio || "",
       });
-      setVerificationQuestions((currentUser as any).verificationQuestions || [
-        { question: "What is your mother's maiden name?", answer: "" },
-        { question: "What was the name of your first pet?", answer: "" }
-      ]);
+      setVerificationQuestions(
+        ((currentUser as any).verificationQuestions && (currentUser as any).verificationQuestions.length > 0)
+          ? (currentUser as any).verificationQuestions
+          : [
+              { question: "What is your mother's maiden name?", answer: "" },
+              { question: "What was the name of your first pet?", answer: "" }
+            ]
+      );
     }
   }, [currentUser, isEditing]);
 
@@ -65,7 +71,9 @@ export default function ProfilePage() {
       try {
         await api.updateProfile(formData);
         await checkSession();
-      } catch (err) {}
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Failed to upload avatar");
+      }
     }
   };
 
@@ -79,7 +87,9 @@ export default function ProfilePage() {
       try {
         await api.updateProfile(formData);
         await checkSession();
-      } catch (err) {}
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Failed to upload cover photo");
+      }
     }
   };
 
@@ -96,6 +106,9 @@ export default function ProfilePage() {
       formData.append("name", profileData.name);
       if (profileData.email !== "Not Provided") formData.append("email", profileData.email);
       if (profileData.recoveryEmail) formData.append("recoveryEmail", profileData.recoveryEmail);
+      formData.append("phone", profileData.phone);
+      formData.append("address", profileData.address);
+      formData.append("bio", profileData.bio);
       
       // Send verification questions only if they have answers
       const validQuestions = verificationQuestions.filter(q => q.question.trim() && q.answer.trim());
@@ -203,7 +216,16 @@ export default function ProfilePage() {
                   {currentUser.role}
                 </span>
               </div>
-              <p className="text-slate-500 font-medium">{profileData.bio}</p>
+              {isEditing ? (
+                <textarea 
+                  value={profileData.bio} 
+                  onChange={e => setProfileData({...profileData, bio: e.target.value})}
+                  className="w-full text-slate-500 font-medium bg-slate-50 border border-slate-200 focus:outline-none focus:border-indigo-500 px-3 py-2 rounded-xl text-sm mt-1"
+                  placeholder="Tell us about yourself..."
+                />
+              ) : (
+                <p className="text-slate-500 font-medium">{profileData.bio}</p>
+              )}
             </div>
 
             <div className="pb-2 w-full sm:w-auto">
@@ -385,7 +407,7 @@ export default function ProfilePage() {
                         ) : (
                           <div className="bg-white p-3 rounded-xl border border-slate-100">
                             <p className="text-xs font-bold text-slate-700 mb-1">Q: {vq.question}</p>
-                            <p className="text-xs text-slate-400 italic">A: •••••••• (Hidden)</p>
+                            <p className="text-xs text-slate-400 italic">A: ••••••••</p>
                           </div>
                         )}
                       </div>
