@@ -22,6 +22,16 @@ router.get("/", protect, async (req, res) => {
     
     const filter = { isDeleted: { $ne: true } };
 
+    const { department, status, search } = req.query;
+    if (department && department !== "All") filter.department = department;
+    if (status && status !== "All") filter.status = status;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } }
+      ];
+    }
+
     const total = await Teacher.countDocuments(filter);
     const teachers = await Teacher.find(filter)
       .populate("subjects")

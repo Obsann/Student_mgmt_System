@@ -57,7 +57,7 @@ router.post("/", protect, authorize("admin"), async (req, res) => {
 router.put("/:id", protect, authorize("admin"), async (req, res) => {
   try {
     // Whitelist allowed fields
-    const allowed = ["name", "code", "grade", "teacherId", "sections"];
+    const allowed = ["name", "code", "grade", "teacherId", "sections", "department", "periodsPerWeek", "description"];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

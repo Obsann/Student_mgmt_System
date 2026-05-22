@@ -7,6 +7,9 @@ const subjectSchema = new mongoose.Schema(
     grade: { type: String, required: true },
     sections: [{ type: String }], // Array of sections (e.g., ["A", "B", "C"])
     teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", required: true },
+    department: { type: String, default: "Natural Science" },
+    periodsPerWeek: { type: Number, default: 4 },
+    description: { type: String, default: "" },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }

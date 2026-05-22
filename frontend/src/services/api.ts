@@ -62,6 +62,9 @@ const mapTeacher = (t: ApiTeacher): Teacher => ({
   subjects: t.subjects?.map((s) => (typeof s === "string" ? s : s._id)) || [],
   assigned_grade: t.assignedGrade,
   assigned_section: t.assignedSection,
+  department: t.department,
+  experience: t.experience,
+  status: t.status,
   avatar: t.avatar || "",
 });
 
@@ -72,6 +75,9 @@ const mapSubject = (s: ApiSubject): Subject => ({
   grade: s.grade,
   sections: s.sections || [],
   teacher_id: typeof s.teacherId === "string" ? s.teacherId : s.teacherId?._id,
+  department: s.department,
+  periodsPerWeek: s.periodsPerWeek,
+  description: s.description,
 });
 
 const mapMark = (m: ApiMark): Mark => ({
@@ -343,6 +349,9 @@ export const api = {
       qualification: teacher.qualification,
       assignedGrade: teacher.assigned_grade,
       assignedSection: teacher.assigned_section,
+      department: teacher.department,
+      experience: teacher.experience,
+      status: teacher.status,
     };
     const data = await apiFetch<ApiTeacher>(`${API_BASE_URL}/teachers`, {
       method: "POST",
@@ -360,6 +369,9 @@ export const api = {
     if (teacher.qualification) backendFormat.qualification = teacher.qualification;
     if (teacher.assigned_grade) backendFormat.assignedGrade = teacher.assigned_grade;
     if (teacher.assigned_section) backendFormat.assignedSection = teacher.assigned_section;
+    if (teacher.department) backendFormat.department = teacher.department;
+    if (teacher.experience !== undefined) backendFormat.experience = teacher.experience;
+    if (teacher.status) backendFormat.status = teacher.status;
 
     const data = await apiFetch<ApiTeacher>(`${API_BASE_URL}/teachers/${id}`, {
       method: "PUT",
@@ -393,6 +405,9 @@ export const api = {
       grade: subject.grade,
       teacherId: subject.teacher_id,
       sections: subject.sections || [],
+      department: subject.department,
+      periodsPerWeek: subject.periodsPerWeek,
+      description: subject.description,
     };
     const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects`, {
       method: "POST",
@@ -409,6 +424,9 @@ export const api = {
     if (subject.grade) backendFormat.grade = subject.grade;
     if (subject.teacher_id) backendFormat.teacherId = subject.teacher_id;
     if (subject.sections !== undefined) backendFormat.sections = subject.sections;
+    if (subject.department) backendFormat.department = subject.department;
+    if (subject.periodsPerWeek !== undefined) backendFormat.periodsPerWeek = subject.periodsPerWeek;
+    if (subject.description !== undefined) backendFormat.description = subject.description;
 
     const data = await apiFetch<ApiSubject>(`${API_BASE_URL}/subjects/${id}`, {
       method: "PUT",

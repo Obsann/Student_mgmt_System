@@ -25,12 +25,13 @@ function generatePassword(length = 10) {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get("/", protect, async (req, res) => {
   try {
-    const { grade, section, status, search } = req.query;
+    const { grade, section, status, search, gender } = req.query;
     const filter = { isDeleted: { $ne: true } };
     
     if (grade && grade !== "All") filter.grade = grade;
     if (section && section !== "All") filter.section = section;
     if (status && status !== "All") filter.status = status;
+    if (gender && gender !== "All") filter.gender = gender;
 
     if (search) {
       filter.$or = [

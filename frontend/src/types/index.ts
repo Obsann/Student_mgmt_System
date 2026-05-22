@@ -192,6 +192,9 @@ export interface ApiSubject {
   grade: string;
   sections?: string[];
   teacherId: string | { _id: string };
+  department?: string;
+  periodsPerWeek?: number;
+  description?: string;
 }
 
 export interface ApiMark {

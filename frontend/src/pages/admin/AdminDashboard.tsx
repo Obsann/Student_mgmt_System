@@ -35,6 +35,8 @@ export default function AdminDashboard() {
 
   const grade9 = state.students.filter(s => s.grade === '9').length;
   const grade10 = state.students.filter(s => s.grade === '10').length;
+  const grade11 = state.students.filter(s => s.grade === '11').length;
+  const grade12 = state.students.filter(s => s.grade === '12').length;
   const sections = Array.from(new Set(state.students.map(s => `${s.grade}${s.section}`)));
 
   const deptCount: Record<string, number> = {};
@@ -108,7 +110,7 @@ export default function AdminDashboard() {
                 <div className="bg-pink-500 h-full rounded-full transition-all duration-1000" style={{ width: `${totalStudents > 0 ? (totalFemale/totalStudents)*100 : 0}%` }}></div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
               <div className="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
                 <p className="text-3xl font-black text-slate-700">{grade9}</p>
                 <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">Grade 9</p>
@@ -116,6 +118,14 @@ export default function AdminDashboard() {
               <div className="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
                 <p className="text-3xl font-black text-slate-700">{grade10}</p>
                 <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">Grade 10</p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
+                <p className="text-3xl font-black text-slate-700">{grade11}</p>
+                <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">Grade 11</p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100">
+                <p className="text-3xl font-black text-slate-700">{grade12}</p>
+                <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">Grade 12</p>
               </div>
             </div>
           </div>

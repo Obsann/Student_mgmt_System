@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BarChart3, Award, FileSpreadsheet, Download, RefreshCw, TrendingUp, FileText, CheckCircle2 } from "lucide-react";
 import { useApp } from "../../contexts/AppContext";
+import { jsPDF } from "jspdf";
 
 export default function AdminReports() {
   const { state } = useApp();
@@ -52,6 +53,31 @@ export default function AdminReports() {
       ]);
       setGenerating(null);
     }, 2000);
+  };
+
+  const handleDownloadReport = (title: string, format: string) => {
+    if (format === "PDF") {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text(title, 20, 20);
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+      doc.text("This is an automatically generated system report.", 20, 45);
+      doc.text(`Average System Score: ${averageSystemScore}%`, 20, 60);
+      doc.text(`Total Grades Recorded: ${totalMarks}`, 20, 70);
+      doc.text(`Passing Rate: ${passRate}%`, 20, 80);
+      doc.save(`${title.replace(/\s+/g, "_")}.pdf`);
+    } else {
+      // Mock Excel Download via Blob
+      const csvContent = "data:text/csv;charset=utf-8,Report Title,Generated On\n" + `${title},${new Date().toLocaleDateString()}`;
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${title.replace(/\s+/g, "_")}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -225,7 +251,10 @@ export default function AdminReports() {
                       <td className="px-6 py-4 text-xs font-semibold text-slate-400">{r.generatedDate}</td>
                       <td className="px-6 py-4 text-center text-xs font-semibold text-slate-500">{r.size}</td>
                       <td className="px-6 py-4 text-center">
-                        <button className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 justify-center mx-auto">
+                        <button 
+                          onClick={() => handleDownloadReport(r.title, r.format)}
+                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 justify-center mx-auto"
+                        >
                           <Download size={12} /> Download
                         </button>
                       </td>

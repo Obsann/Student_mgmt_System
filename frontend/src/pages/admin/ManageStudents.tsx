@@ -468,7 +468,11 @@ export default function ManageStudents() {
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black ${student.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                        {student.first_name[0]}{student.last_name[0]}
+                        {student.avatar ? (
+                          <img src={student.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          `${student.first_name[0]}${student.last_name[0]}`
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-900">{student.first_name} {student.last_name}</p>
@@ -594,8 +598,12 @@ export default function ManageStudents() {
             <div className="h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-3xl relative shrink-0">
               <button onClick={() => setViewStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 hover:bg-black/20 rounded-xl flex items-center justify-center text-white transition-colors">X</button>
               <div className="absolute -bottom-10 left-8">
-                <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                  {viewStudent.first_name[0]}{viewStudent.last_name[0]}
+                <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black overflow-hidden ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                  {viewStudent.avatar ? (
+                    <img src={viewStudent.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    `${viewStudent.first_name[0]}${viewStudent.last_name[0]}`
+                  )}
                 </div>
               </div>
             </div>

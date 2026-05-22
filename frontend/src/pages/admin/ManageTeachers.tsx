@@ -236,8 +236,12 @@ export default function ManageTeachers() {
                 <div>
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100/50 flex items-center justify-center text-emerald-600 text-lg font-black shrink-0">
-                        {initialLetter}
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100/50 flex items-center justify-center text-emerald-600 text-lg font-black shrink-0 overflow-hidden">
+                        {teacher.avatar ? (
+                          <img src={teacher.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          initialLetter
+                        )}
                       </div>
                       <div>
                         <h4 className="font-extrabold text-slate-900 group-hover:text-amber-600 transition-colors">{teacher.name}</h4>
@@ -353,11 +357,17 @@ export default function ManageTeachers() {
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
             <div className="h-24 bg-gradient-to-r from-slate-700 to-slate-800 rounded-t-3xl relative shrink-0">
               <button onClick={() => setViewTeacher(null)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-colors">X</button>
-            </div>
-            <div className="px-8 pb-8 -mt-10 overflow-y-auto custom-scrollbar flex-1">
-              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black bg-emerald-50 text-emerald-700 shrink-0`}>
-                {viewTeacher.name ? viewTeacher.name.charAt(0).toUpperCase() : '?'}
+              <div className="absolute -bottom-10 left-8">
+                <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black bg-emerald-50 text-emerald-700 overflow-hidden`}>
+                  {viewTeacher.avatar ? (
+                    <img src={viewTeacher.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    viewTeacher.name ? viewTeacher.name.charAt(0).toUpperCase() : '?'
+                  )}
+                </div>
               </div>
+            </div>
+            <div className="px-8 pb-8 pt-14 overflow-y-auto custom-scrollbar flex-1">
               <div className="mt-4 flex items-start justify-between">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900">{viewTeacher.name}</h3>
