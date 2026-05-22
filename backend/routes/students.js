@@ -150,7 +150,7 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
     }
 
     // Determine status based on role (Teacher now acts as Registrar)
-    const canActivate = isAdmin || isTeacher;
+    const canActivate = isAdmin;
 
     const studentData = {
       ...req.body,
@@ -218,9 +218,9 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/students/:id/issue-credentials — Admin/Teacher approves + emails credentials
+// POST /api/students/:id/issue-credentials — Admin approves + emails credentials
 // ─────────────────────────────────────────────────────────────────────────────
-router.post("/:id/issue-credentials", protect, authorize("admin", "teacher"), async (req, res) => {
+router.post("/:id/issue-credentials", protect, authorize("admin"), async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });

@@ -163,7 +163,7 @@ export default function ForgotPassword() {
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      Continue
+                      <span>Continue</span>
                       <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
@@ -217,7 +217,7 @@ export default function ForgotPassword() {
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      Verify & Reset Password
+                      <span>Verify & Reset Password</span>
                       <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
@@ -246,7 +246,7 @@ export default function ForgotPassword() {
                 onClick={() => navigate("/login")}
                 className="w-full py-4 bg-gray-900 hover:bg-indigo-600 text-white rounded-2xl text-sm font-bold tracking-wide transition-all shadow-xl flex items-center justify-center gap-2 group"
               >
-                Back to Sign In
+                <span>Back to Sign In</span>
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>

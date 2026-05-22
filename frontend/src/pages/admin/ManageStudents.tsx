@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { UserCheck, Plus, Pencil, Trash2, Search, Save, Upload, Download, Eye, Users, User, Layers, Info, MapPin, BookOpen, Mail } from "lucide-react";
+import { UserCheck, Plus, Pencil, Trash2, Search, Save, Upload, Download, Eye, Users, User, Layers, Info, MapPin, BookOpen, Mail, FileText } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { useApp } from "../../contexts/AppContext";
 import { useToast } from "../../contexts/ToastContext";
 import { api } from "../../services/api";
@@ -220,6 +221,155 @@ export default function ManageStudents() {
       }
       setConfirmDelete({ open: false, student: null });
     }
+  };
+
+  const downloadStudentTranscript = (student: Student) => {
+    // Collect student's subjects based on their grade
+    const studentSubjects = state.subjects.filter((s) => s.grades.includes(student.grade));
+    const myMarks = state.marks.filter((m) => m.student_id === student.id);
+    
+    let totalScoreAll = 0;
+    let validSubjectsCount = 0;
+
+    studentSubjects.forEach(sub => {
+      const subjectMarks = myMarks.filter(m => m.subject_id === sub.id);
+      if (subjectMarks.length > 0) {
+        const att = subjectMarks.find(m => m.assessment_type === "attendance")?.score ?? 0;
+        const ass = subjectMarks.find(m => m.assessment_type === "assignment")?.score ?? 0;
+        const quiz = subjectMarks.find(m => m.assessment_type === "quiz")?.score ?? 0;
+        const mid = subjectMarks.find(m => m.assessment_type === "midterm")?.score ?? 0;
+        const fnl = subjectMarks.find(m => m.assessment_type === "final")?.score ?? 0;
+        totalScoreAll += (Number(att) + Number(ass) + Number(quiz) + Number(mid) + Number(fnl));
+        validSubjectsCount++;
+      }
+    });
+
+    const avgScore = validSubjectsCount > 0 ? (totalScoreAll / validSubjectsCount).toFixed(1) : 0;
+    const gradedSubjectIds = new Set(myMarks.map((m) => m.subject_id));
+    const allMarksEntered = studentSubjects.length > 0 && studentSubjects.every((sub) => gradedSubjectIds.has(sub.id));
+
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+
+    const navy = [15, 23, 42];
+    const slate = [100, 116, 139];
+    const border = [226, 232, 240];
+
+    // Page Border
+    doc.setDrawColor(navy[0], navy[1], navy[2]);
+    doc.setLineWidth(0.5);
+    doc.rect(5, 5, 200, 287);
+
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text("KERA HIGH SCHOOL", 105, 20, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(slate[0], slate[1], slate[2]);
+    doc.text("Official Academic Transcript • Addis Ababa, Ethiopia", 105, 25, { align: "center" });
+
+    doc.setDrawColor(border[0], border[1], border[2]);
+    doc.setLineWidth(0.5);
+    doc.line(15, 30, 195, 30);
+
+    // Student Info
+    doc.setFontSize(11);
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT PROFILE", 15, 38);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Full Name: ${student.first_name} ${student.last_name}`, 15, 45);
+    doc.text(`Roll Number: ${student.roll_number}`, 15, 51);
+    doc.text(`Grade & Section: Grade ${student.grade}${student.section}`, 15, 57);
+
+    doc.text(`Academic Year: 2026/2027`, 120, 45);
+    doc.text(`Semester: Semester 1`, 120, 51);
+    doc.text(`Issue Date: ${new Date().toLocaleDateString()}`, 120, 57);
+
+    // Table Header
+    const tableTop = 68;
+    doc.setFillColor(navy[0], navy[1], navy[2]);
+    doc.rect(15, tableTop, 180, 8, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text("Subject/Course", 17, tableTop + 5.5);
+    doc.text("Att. (10)", 70, tableTop + 5.5);
+    doc.text("Ass. (10)", 90, tableTop + 5.5);
+    doc.text("Quiz (10)", 110, tableTop + 5.5);
+    doc.text("Mid (20)", 130, tableTop + 5.5);
+    doc.text("Final (50)", 150, tableTop + 5.5);
+    doc.text("Total (100)", 175, tableTop + 5.5);
+
+    let currentY = tableTop + 8;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+
+    studentSubjects.forEach((sub, index) => {
+      const marks = myMarks.filter(m => m.subject_id === sub.id);
+      const att = marks.find(m => m.assessment_type === "attendance")?.score ?? "-";
+      const ass = marks.find(m => m.assessment_type === "assignment")?.score ?? "-";
+      const quiz = marks.find(m => m.assessment_type === "quiz")?.score ?? "-";
+      const mid = marks.find(m => m.assessment_type === "midterm")?.score ?? "-";
+      const fnl = marks.find(m => m.assessment_type === "final")?.score ?? "-";
+
+      const hasMarks = marks.length > 0;
+      const totalScore = hasMarks ? (Number(att) || 0) + (Number(ass) || 0) + (Number(quiz) || 0) + (Number(mid) || 0) + (Number(fnl) || 0) : "-";
+
+      if (index % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(15, currentY, 180, 7, "F");
+      }
+
+      doc.setDrawColor(border[0], border[1], border[2]);
+      doc.line(15, currentY + 7, 195, currentY + 7);
+
+      doc.text(sub.name, 17, currentY + 5);
+      doc.text(String(att), 75, currentY + 5, { align: "center" });
+      doc.text(String(ass), 95, currentY + 5, { align: "center" });
+      doc.text(String(quiz), 115, currentY + 5, { align: "center" });
+      doc.text(String(mid), 135, currentY + 5, { align: "center" });
+      doc.text(String(fnl), 155, currentY + 5, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      doc.text(String(totalScore), 180, currentY + 5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+
+      currentY += 7;
+    });
+
+    // Summary Box
+    currentY += 10;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(15, currentY, 180, 20, "F");
+    doc.setDrawColor(border[0], border[1], border[2]);
+    doc.rect(15, currentY, 180, 20, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`Overall Average Percent: ${avgScore}%`, 20, currentY + 8);
+    doc.text(`Academic Status: ${allMarksEntered ? (Number(avgScore) >= 50 ? "PASS" : "FAIL") : "PENDING"}`, 20, currentY + 14);
+
+    doc.text("Grading Scale:", 120, currentY + 8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Pass: >= 50%   Fail: < 50%", 120, currentY + 14);
+
+    // Signatures
+    currentY += 40;
+    doc.line(20, currentY, 80, currentY);
+    doc.text("Homeroom Teacher Signature", 22, currentY + 5);
+
+    doc.line(130, currentY, 190, currentY);
+    doc.text("School Principal Stamp", 137, currentY + 5);
+
+    doc.save(`Transcript_${student.first_name}_${student.last_name}.pdf`);
   };
 
   return (
@@ -484,6 +634,12 @@ export default function ManageStudents() {
                     <Trash2 size={16} /> Delete
                   </button>
                 </div>
+                <button 
+                  onClick={() => downloadStudentTranscript(viewStudent)}
+                  className="w-full px-4 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileText size={16} /> Download PDF Transcript
+                </button>
                 <button 
                   onClick={async () => {
                     try {

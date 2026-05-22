@@ -262,7 +262,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getSubjectsByTeacher = useCallback((teacherId: string) => state.subjects.filter((s) => s.teacher_id === teacherId), [state.subjects]);
   const getMarksForStudent = useCallback((studentId: string) => state.marks.filter((m) => m.student_id === studentId), [state.marks]);
   const getAttendanceForStudent = useCallback((studentId: string) => state.attendance.filter((a) => a.student_id === studentId), [state.attendance]);
-  const getAttendanceForDate = useCallback((subjectId: string, date: string) => state.attendance.filter((a) => a.subject_id === subjectId && a.date.startsWith(date)), [state.attendance]);
+  const getAttendanceForDate = useCallback((subjectId: string, date: string) => {
+    const [year, month, day] = date.split("-").map(Number);
+    return state.attendance.filter((a) => {
+      const aDate = new Date(a.date);
+      return a.subject_id === subjectId &&
+             aDate.getFullYear() === year &&
+             aDate.getMonth() === (month - 1) &&
+             aDate.getDate() === day;
+    });
+  }, [state.attendance]);
 
   return (
     <DataContext.Provider value={{

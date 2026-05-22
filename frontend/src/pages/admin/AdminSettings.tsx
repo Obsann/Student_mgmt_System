@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "../../contexts/ToastContext";
 import { api } from "../../services/api";
-import { Save, Database, CalendarDays, HardDriveDownload } from "lucide-react";
+import { Save, Database, CalendarDays, HardDriveDownload, Settings } from "lucide-react";
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<any>({});

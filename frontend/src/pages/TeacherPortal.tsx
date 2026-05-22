@@ -5,6 +5,7 @@ import {
   LayoutGrid, List as ListIcon, X, User, Phone, MapPin, Edit3, ClipboardList, Check
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { api } from "../services/api";
 import ProfilePage from "./ProfilePage";
 import StudentRegistrationForm from "../components/StudentRegistrationForm";
 import Pagination from "../components/Pagination";
@@ -262,8 +263,15 @@ function TakeAttendance() {
   const chartDays = Array.from({length: 7}).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
-    const ds = d.toISOString().split("T")[0];
-    const recs = state.attendance.filter(a => a.date.startsWith(ds) && a.subject_id === selectedSubject);
+    
+    const recs = state.attendance.filter(a => {
+      const aDate = new Date(a.date);
+      return a.subject_id === selectedSubject &&
+             aDate.getFullYear() === d.getFullYear() &&
+             aDate.getMonth() === d.getMonth() &&
+             aDate.getDate() === d.getDate();
+    });
+    
     const p = recs.filter(r => r.status === 'present').length;
     const a = recs.filter(r => r.status === 'absent').length;
     const l = recs.filter(r => r.status === 'late').length;
@@ -296,12 +304,26 @@ function TakeAttendance() {
       {/* Controls */}
       <div className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all animate-fade-in">
         <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
+          <div className="w-full md:w-48">
             <label className="block text-xs font-medium text-slate-600 mb-1">Homeroom Class</label>
             <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 bg-slate-100 flex items-center gap-2">
               <User size={16} className="text-blue-500" />
               Grade {targetGrade} - Section {targetSection}
             </div>
+          </div>
+          <div className="flex-1 min-w-[200px] w-full">
+            <label className="block text-xs font-medium text-slate-600 mb-1">Subject</label>
+            <select
+              value={selectedSubject}
+              onChange={(e) => { setSelectedSubject(e.target.value); setSubmitted(false); }}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+            >
+              {mySubjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} (Grade {s.grade})
+                </option>
+              ))}
+            </select>
           </div>
           <div className="w-full md:w-auto">
             <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
@@ -447,6 +469,25 @@ function EnterMarks() {
   const teacher = state.teachers.find((t) => t.id === teacherId);
   const [selectedSection, setSelectedSection] = useState<string>(teacher?.assigned_section || "All");
 
+  const [academicYear, setAcademicYear] = useState("2026/2027");
+  const [semester, setSemester] = useState(1);
+
+  // Load system settings on mount
+  useEffect(() => {
+    api.getSettings()
+      .then((settings: any) => {
+        if (settings.academicYear) {
+          setAcademicYear(settings.academicYear);
+        }
+        if (settings.currentSemester) {
+          setSemester(Number(settings.currentSemester) || 1);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load settings in EnterMarks:", err);
+      });
+  }, []);
+
   const currentSubjectObj = state.subjects.find(s => s.id === selectedSubject);
   const targetGrade = currentSubjectObj ? currentSubjectObj.grade : teacher?.assigned_grade;
   const availableSections = currentSubjectObj?.sections?.length 
@@ -498,7 +539,7 @@ function EnterMarks() {
 
       // Find marks for this student and subject
       const studentMarks = state.marks.filter(
-        (m) => m.student_id === student.id && m.subject_id === selectedSubject && m.semester === 1
+        (m) => m.student_id === student.id && m.subject_id === selectedSubject && m.semester === semester && m.academic_year === academicYear
       );
 
       let studentHasAnyMark = false;
@@ -528,7 +569,7 @@ function EnterMarks() {
     setRemarks(loadedRemarks);
     setSaved(loadedSaved);
     setSubmitted(false);
-  }, [selectedSubject, selectedSection, students.length]);
+  }, [selectedSubject, selectedSection, students.length, academicYear, semester]);
 
   const handleScoreChange = (studentId: string, type: string, value: string) => {
     const maxVal = maxScores[type as keyof typeof maxScores] || 100;
@@ -581,8 +622,8 @@ function EnterMarks() {
             marksToSave.push({
               student_id: student.id,
               subject_id: selectedSubject,
-              academic_year: "2025/2026",
-              semester: 1,
+              academic_year: academicYear,
+              semester: semester,
               assessment_type: type,
               score: Number(val),
               max_score: maxScores[type],
@@ -1044,8 +1085,12 @@ function ViewStudents() {
                     <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-600">
-                             {student.first_name[0]}{student.last_name[0]}
+                           <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 overflow-hidden shrink-0">
+                             {student.avatar ? (
+                               <img src={student.avatar} alt={`${student.first_name} ${student.last_name}`} className="w-full h-full object-cover" />
+                             ) : (
+                               `${student.first_name[0]}${student.last_name[0]}`
+                             )}
                            </div>
                            <span className="font-bold text-slate-900">{student.first_name} {student.last_name}</span>
                         </div>
@@ -1081,8 +1126,12 @@ function ViewStudents() {
              return (
               <div key={student.id} onClick={() => setSelectedStudent(student)} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group">
                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-black text-slate-500 text-lg shadow-inner">
-                      {student.first_name[0]}{student.last_name[0]}
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-black text-slate-500 text-lg shadow-inner overflow-hidden shrink-0">
+                      {student.avatar ? (
+                        <img src={student.avatar} alt={`${student.first_name} ${student.last_name}`} className="w-full h-full object-cover" />
+                      ) : (
+                        `${student.first_name[0]}${student.last_name[0]}`
+                      )}
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${student.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>{student.gender}</span>
                  </div>
@@ -1126,10 +1175,14 @@ function ViewStudents() {
             
             <div className="px-8 pb-8">
                <div className="-mt-12 flex justify-between items-end mb-6">
-                 <div className="w-24 h-24 rounded-3xl bg-white p-1.5 shadow-lg shrink-0">
-                    <div className="w-full h-full rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl font-black text-slate-400">
-                       {selectedStudent.first_name[0]}{selectedStudent.last_name[0]}
-                    </div>
+                 <div className="w-24 h-24 rounded-3xl bg-white p-1.5 shadow-lg shrink-0 overflow-hidden">
+                   {selectedStudent.avatar ? (
+                     <img src={selectedStudent.avatar} alt={`${selectedStudent.first_name} ${selectedStudent.last_name}`} className="w-full h-full object-cover rounded-2xl" />
+                   ) : (
+                     <div className="w-full h-full rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl font-black text-slate-400">
+                        {selectedStudent.first_name[0]}{selectedStudent.last_name[0]}
+                     </div>
+                   )}
                  </div>
                  <div className="flex gap-2">
                    <button 
@@ -1181,6 +1234,33 @@ function ViewStudents() {
                         <div className="text-sm text-slate-500 mt-1">Grade 8 GPA: {selectedStudent.grade_8_gpa}</div>
                      </div>
                    </div>
+
+                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Date of Birth</div>
+                         <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                           {selectedStudent.date_of_birth ? new Date(selectedStudent.date_of_birth).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                         </div>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Fayda ID</div>
+                         <div className="font-mono font-bold text-slate-900 text-xs sm:text-sm truncate" title={selectedStudent.fayda_id || 'N/A'}>
+                           {selectedStudent.fayda_id || 'N/A'}
+                         </div>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nat. Exam #</div>
+                         <div className="font-mono font-bold text-slate-900 text-xs sm:text-sm truncate" title={selectedStudent.national_exam_number || 'N/A'}>
+                           {selectedStudent.national_exam_number || 'N/A'}
+                         </div>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50">
+                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Enrolled Date</div>
+                         <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                           {selectedStudent.enrolled_date ? new Date(selectedStudent.enrolled_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                         </div>
+                      </div>
+                    </div>
 
                    <div className="flex gap-3">
                      <button onClick={() => setModalTab("academic")} className="flex-1 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-md shadow-slate-900/10 hover:-translate-y-0.5">Full Academic Record</button>
@@ -1348,7 +1428,7 @@ function EnrollStudent() {
             <h2 className="text-2xl font-black">Student Registration</h2>
           </div>
           <p className="text-blue-100 text-sm font-medium leading-relaxed max-w-xl">
-            Register new students for the academic year. As a Home Room teacher, you have full authority to activate students and issue their credentials immediately.
+            Register new students for the academic year. As a Home Room teacher, you can submit registrations for administrator approval.
           </p>
         </div>
       </div>

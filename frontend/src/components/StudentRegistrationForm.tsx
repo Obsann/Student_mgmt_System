@@ -127,8 +127,8 @@ export default function StudentRegistrationForm() {
         <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 size={40} />
         </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Registration Successful!</h2>
-        <p className="text-slate-500 mb-8 font-medium">The student has been added to the system and credentials have been generated.</p>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Registration Submitted!</h2>
+        <p className="text-slate-500 mb-8 font-medium">The student details have been submitted and are pending administrator approval. Credentials will be sent upon approval.</p>
         <button 
           onClick={() => { setSuccess(false); setStep(1); }}
           className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"

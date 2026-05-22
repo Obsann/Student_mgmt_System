@@ -1,8 +1,7 @@
 import { useState } from "react";
 import {
-  User, BookOpen, TrendingUp, Calendar, Award, ChevronLeft, ChevronRight, LayoutGrid, List
+  User, BookOpen, TrendingUp, Calendar, Award, ChevronLeft, ChevronRight, LayoutGrid, List, FileText, X
 } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { useApp } from "../contexts/AppContext";
 import ProfilePage from "./ProfilePage";
 import Pagination from "../components/Pagination";
@@ -280,130 +279,7 @@ function MyMarks() {
   const gradedSubjectIds = new Set(myMarks.map((m) => m.subject_id));
   const allMarksEntered = studentSubjects.length > 0 && studentSubjects.every((sub) => gradedSubjectIds.has(sub.id));
 
-  const downloadPDFTranscript = () => {
-    const doc = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4"
-    });
-
-    const navy = [15, 23, 42];
-    const slate = [100, 116, 139];
-    const border = [226, 232, 240];
-
-    // Page Border
-    doc.setDrawColor(navy[0], navy[1], navy[2]);
-    doc.setLineWidth(0.5);
-    doc.rect(5, 5, 200, 287);
-
-    // Header
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.text("KERA HIGH SCHOOL", 105, 20, { align: "center" });
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text("Official Academic Transcript • Addis Ababa, Ethiopia", 105, 25, { align: "center" });
-
-    doc.setDrawColor(border[0], border[1], border[2]);
-    doc.setLineWidth(0.5);
-    doc.line(15, 30, 195, 30);
-
-    // Student Info
-    doc.setFontSize(11);
-    doc.setTextColor(navy[0], navy[1], navy[2]);
-    doc.setFont("helvetica", "bold");
-    doc.text("STUDENT PROFILE", 15, 38);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Full Name: ${student?.first_name} ${student?.last_name}`, 15, 45);
-    doc.text(`Roll Number: ${student?.roll_number}`, 15, 51);
-    doc.text(`Grade & Section: Grade ${student?.grade}${student?.section}`, 15, 57);
-
-    doc.text(`Academic Year: 2026/2027`, 120, 45);
-    doc.text(`Semester: Semester 1`, 120, 51);
-    doc.text(`Issue Date: ${new Date().toLocaleDateString()}`, 120, 57);
-
-    // Table Header
-    const tableTop = 68;
-    doc.setFillColor(navy[0], navy[1], navy[2]);
-    doc.rect(15, tableTop, 180, 8, "F");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.text("Subject/Course", 17, tableTop + 5.5);
-    doc.text("Att. (10)", 70, tableTop + 5.5);
-    doc.text("Ass. (10)", 90, tableTop + 5.5);
-    doc.text("Quiz (10)", 110, tableTop + 5.5);
-    doc.text("Mid (20)", 130, tableTop + 5.5);
-    doc.text("Final (50)", 150, tableTop + 5.5);
-    doc.text("Total (100)", 175, tableTop + 5.5);
-
-    let currentY = tableTop + 8;
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(navy[0], navy[1], navy[2]);
-
-    studentSubjects.forEach((sub, index) => {
-      const marks = myMarks.filter(m => m.subject_id === sub.id);
-      const att = marks.find(m => m.assessment_type === "attendance")?.score ?? "-";
-      const ass = marks.find(m => m.assessment_type === "assignment")?.score ?? "-";
-      const quiz = marks.find(m => m.assessment_type === "quiz")?.score ?? "-";
-      const mid = marks.find(m => m.assessment_type === "midterm")?.score ?? "-";
-      const fnl = marks.find(m => m.assessment_type === "final")?.score ?? "-";
-
-      const hasMarks = marks.length > 0;
-      const totalScore = hasMarks ? (Number(att) || 0) + (Number(ass) || 0) + (Number(quiz) || 0) + (Number(mid) || 0) + (Number(fnl) || 0) : "-";
-
-      if (index % 2 === 1) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(15, currentY, 180, 7, "F");
-      }
-
-      doc.setDrawColor(border[0], border[1], border[2]);
-      doc.line(15, currentY + 7, 195, currentY + 7);
-
-      doc.text(sub.name, 17, currentY + 5);
-      doc.text(String(att), 75, currentY + 5, { align: "center" });
-      doc.text(String(ass), 95, currentY + 5, { align: "center" });
-      doc.text(String(quiz), 115, currentY + 5, { align: "center" });
-      doc.text(String(mid), 135, currentY + 5, { align: "center" });
-      doc.text(String(fnl), 155, currentY + 5, { align: "center" });
-      doc.setFont("helvetica", "bold");
-      doc.text(String(totalScore), 180, currentY + 5, { align: "center" });
-      doc.setFont("helvetica", "normal");
-
-      currentY += 7;
-    });
-
-    // Summary Box
-    currentY += 10;
-    doc.setFillColor(248, 250, 252);
-    doc.rect(15, currentY, 180, 20, "F");
-    doc.setDrawColor(border[0], border[1], border[2]);
-    doc.rect(15, currentY, 180, 20, "S");
-
-    doc.setFont("helvetica", "bold");
-    doc.text(`Overall Average Percent: ${avgScore}%`, 20, currentY + 8);
-    doc.text(`Academic Status: ${allMarksEntered ? (avgScore >= 50 ? "PASS" : "FAIL") : "PENDING"}`, 20, currentY + 14);
-
-    doc.text("Grading Scale:", 120, currentY + 8);
-    doc.setFont("helvetica", "normal");
-    doc.text("Pass: >= 50%   Fail: < 50%", 120, currentY + 14);
-
-    // Signatures
-    currentY += 40;
-    doc.line(20, currentY, 80, currentY);
-    doc.text("Homeroom Teacher Signature", 22, currentY + 5);
-
-    doc.line(130, currentY, 190, currentY);
-    doc.text("School Principal Stamp", 137, currentY + 5);
-
-    doc.save(`Transcript_${student?.first_name}_${student?.last_name}.pdf`);
-  };
+  const [showTranscript, setShowTranscript] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -413,12 +289,116 @@ function MyMarks() {
           <p className="text-xs text-slate-400 mt-1 font-medium">View detailed breakdown of your academic performances across all subjects.</p>
         </div>
         <button 
-          onClick={downloadPDFTranscript}
+          onClick={() => setShowTranscript(true)}
           className="w-full sm:w-auto px-5 py-3 bg-indigo-600 text-white font-bold text-sm rounded-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20"
         >
-          <Award size={18} /> Download PDF Transcript
+          <FileText size={18} /> View Transcript
         </button>
       </div>
+
+      {showTranscript && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowTranscript(false)}>
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-scale overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Official Transcript</h3>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">Kera High School</p>
+                </div>
+              </div>
+              <button onClick={() => setShowTranscript(false)} className="w-8 h-8 bg-slate-200/50 hover:bg-slate-200 rounded-xl flex items-center justify-center text-slate-600 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
+              <div className="max-w-3xl mx-auto border border-slate-200 p-8 rounded-none shadow-sm">
+                <div className="text-center mb-8 border-b-2 border-slate-800 pb-4">
+                  <h1 className="text-2xl font-serif font-bold text-slate-900">KERA HIGH SCHOOL</h1>
+                  <p className="text-sm font-serif text-slate-600 mt-1">Official Academic Transcript • Addis Ababa, Ethiopia</p>
+                </div>
+
+                <div className="mb-8 grid grid-cols-2 gap-4 text-sm font-serif">
+                  <div>
+                    <p className="mb-1"><span className="font-bold">Student Name:</span> {student?.first_name} {student?.last_name}</p>
+                    <p className="mb-1"><span className="font-bold">Roll Number:</span> {student?.roll_number}</p>
+                    <p><span className="font-bold">Grade & Section:</span> Grade {student?.grade}{student?.section}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="mb-1"><span className="font-bold">Academic Year:</span> 2026/2027</p>
+                    <p className="mb-1"><span className="font-bold">Semester:</span> Semester 1</p>
+                    <p><span className="font-bold">Issue Date:</span> {new Date().toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                <table className="w-full text-sm border-collapse mb-8 font-serif">
+                  <thead>
+                    <tr className="bg-slate-800 text-white">
+                      <th className="border border-slate-800 py-2 px-3 text-left">Subject/Course</th>
+                      <th className="border border-slate-800 py-2 px-2 text-center">Att (10)</th>
+                      <th className="border border-slate-800 py-2 px-2 text-center">Ass (10)</th>
+                      <th className="border border-slate-800 py-2 px-2 text-center">Quiz (10)</th>
+                      <th className="border border-slate-800 py-2 px-2 text-center">Mid (20)</th>
+                      <th className="border border-slate-800 py-2 px-2 text-center">Final (50)</th>
+                      <th className="border border-slate-800 py-2 px-3 text-center">Total (100)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentSubjects.map((sub, index) => {
+                      const marks = myMarks.filter(m => m.subject_id === sub.id);
+                      const att = marks.find(m => m.assessment_type === "attendance")?.score ?? "-";
+                      const ass = marks.find(m => m.assessment_type === "assignment")?.score ?? "-";
+                      const quiz = marks.find(m => m.assessment_type === "quiz")?.score ?? "-";
+                      const mid = marks.find(m => m.assessment_type === "midterm")?.score ?? "-";
+                      const fnl = marks.find(m => m.assessment_type === "final")?.score ?? "-";
+
+                      const hasMarks = marks.length > 0;
+                      const totalScore = hasMarks ? (Number(att) || 0) + (Number(ass) || 0) + (Number(quiz) || 0) + (Number(mid) || 0) + (Number(fnl) || 0) : "-";
+
+                      return (
+                        <tr key={sub.id} className={index % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
+                          <td className="border border-slate-300 py-2 px-3 font-medium">{sub.name}</td>
+                          <td className="border border-slate-300 py-2 px-2 text-center">{att}</td>
+                          <td className="border border-slate-300 py-2 px-2 text-center">{ass}</td>
+                          <td className="border border-slate-300 py-2 px-2 text-center">{quiz}</td>
+                          <td className="border border-slate-300 py-2 px-2 text-center">{mid}</td>
+                          <td className="border border-slate-300 py-2 px-2 text-center">{fnl}</td>
+                          <td className="border border-slate-300 py-2 px-3 text-center font-bold">{totalScore}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                <div className="bg-slate-50 p-6 border border-slate-300 mb-16 font-serif">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="font-bold text-lg">Overall Average Percent: {avgScore}%</p>
+                    <p className="text-sm"><span className="font-bold">Grading Scale:</span> Pass: &gt;= 50% | Fail: &lt; 50%</p>
+                  </div>
+                  <p className="font-bold text-lg">Academic Status: {allMarksEntered ? (avgScore >= 50 ? "PASS" : "FAIL") : "PENDING"}</p>
+                </div>
+
+                <div className="flex justify-between items-end font-serif mt-12 pt-8">
+                  <div className="text-center">
+                    <div className="w-48 border-b border-slate-800 mb-2 mx-auto"></div>
+                    <p className="text-sm">Homeroom Teacher Signature</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-48 border-b border-slate-800 mb-2 mx-auto"></div>
+                    <p className="text-sm">School Principal Stamp</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 text-center">
+              <p className="text-xs text-slate-500 font-medium">This is a view-only digital copy. For official printed transcripts, please contact the administration office.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-up">
         <div className="overflow-x-auto">
