@@ -225,7 +225,7 @@ export default function ManageStudents() {
 
   const downloadStudentTranscript = (student: Student) => {
     // Collect student's subjects based on their grade
-    const studentSubjects = state.subjects.filter((s) => s.grades.includes(student.grade));
+    const studentSubjects = state.subjects.filter((s) => s.grade === student.grade);
     const myMarks = state.marks.filter((m) => m.student_id === student.id);
     
     let totalScoreAll = 0;
