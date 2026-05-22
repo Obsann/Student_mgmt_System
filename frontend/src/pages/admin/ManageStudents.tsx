@@ -593,11 +593,13 @@ export default function ManageStudents() {
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl animate-fade-scale" onClick={e => e.stopPropagation()}>
             <div className="h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-3xl relative shrink-0">
               <button onClick={() => setViewStudent(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 hover:bg-black/20 rounded-xl flex items-center justify-center text-white transition-colors">X</button>
-            </div>
-            <div className="px-8 pb-8 -mt-10 overflow-y-auto custom-scrollbar flex-1">
-              <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black shrink-0 ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                {viewStudent.first_name[0]}{viewStudent.last_name[0]}
+              <div className="absolute -bottom-10 left-8">
+                <div className={`w-20 h-20 rounded-3xl border-4 border-white shadow-lg flex items-center justify-center text-3xl font-black ${viewStudent.gender === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                  {viewStudent.first_name[0]}{viewStudent.last_name[0]}
+                </div>
               </div>
+            </div>
+            <div className="px-8 pb-8 pt-14 overflow-y-auto custom-scrollbar flex-1">
               <div className="mt-4 flex items-start justify-between">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900">{viewStudent.first_name} {viewStudent.last_name}</h3>
