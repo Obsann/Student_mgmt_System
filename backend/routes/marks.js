@@ -32,7 +32,7 @@ router.get("/", protect, async (req, res) => {
         const homeroomStudentIds = homeroomStudents.map(s => s._id);
 
         filter.$or = [
-          { enteredBy: teacher._id },
+          { enteredBy: req.user._id },
           { subjectId: { $in: teacherSubjectIds } },
           { studentId: { $in: homeroomStudentIds } }
         ];
@@ -94,12 +94,26 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
       }
     }
 
-    // Use findOneAndUpdate with upsert to either create new or update existing mark
-    const mark = await Mark.findOneAndUpdate(
-      { studentId, subjectId, academicYear, semester, assessmentType },
-      { score, maxScore, remarks, enteredBy: req.user._id },
-      { new: true, upsert: true, runValidators: true }
-    );
+    let mark = await Mark.findOne({ studentId, subjectId, academicYear, semester, assessmentType });
+    if (mark) {
+      mark.score = score;
+      mark.maxScore = maxScore;
+      mark.remarks = remarks;
+      mark.enteredBy = req.user._id;
+    } else {
+      mark = new Mark({
+        studentId,
+        subjectId,
+        academicYear,
+        semester,
+        assessmentType,
+        score,
+        maxScore,
+        remarks,
+        enteredBy: req.user._id,
+      });
+    }
+    await mark.save();
 
     await AuditLog.create({
       userId: req.user._id,
@@ -113,7 +127,8 @@ router.post("/", protect, authorize("admin", "teacher"), async (req, res) => {
 
     res.status(201).json(mark);
   } catch (err) {
-    res.status(400).json({ message: "Validation error" });
+    console.error("Mark save error:", err);
+    res.status(400).json({ message: "Validation error", error: err.message });
   }
 });
 

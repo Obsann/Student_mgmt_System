@@ -131,12 +131,13 @@ async function seed() {
 
     // 3. Teachers
     const createdTeachers = [];
+    const teacherUserIdMap = {};
     for (const t of teachersData) {
       const teacher = await Teacher.create(t);
       createdTeachers.push(teacher);
 
       const uname = t.email.split("@")[0];
-      await User.create({
+      const teacherUser = await User.create({
         username: uname,
         password: "teacher123",
         role: "teacher",
@@ -144,6 +145,7 @@ async function seed() {
         email: t.email,
         refId: teacher._id,
       });
+      teacherUserIdMap[teacher._id.toString()] = teacherUser._id;
     }
     console.log(`✓ ${createdTeachers.length} Teachers created`);
 
@@ -239,7 +241,7 @@ async function seed() {
             assessmentType: ass.type,
             score: score,
             maxScore: ass.max,
-            enteredBy: subject.teacherId,
+            enteredBy: teacherUserIdMap[subject.teacherId.toString()],
             remarks: "Seeded"
           });
         }

@@ -78,6 +78,7 @@ export interface AttendanceRecord {
   subject_id: string;
   date: string;
   status: "present" | "absent" | "late" | "excused";
+  remarks?: string;
   recorded_by: string;
 }
 
@@ -216,5 +217,6 @@ export interface ApiAttendance {
   subjectId: string | { _id: string };
   date: string;
   status: "present" | "absent" | "late" | "excused";
+  remarks?: string;
   recordedBy: string;
 }

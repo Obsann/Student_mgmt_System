@@ -50,9 +50,9 @@ function AdminRoutes() {
 function TeacherRoutes() {
   const navItems = [
     { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
-    { id: "attendance", path: "/attendance", label: "Attendance", icon: <ClipboardCheck size={18} /> },
+    { id: "homeroom", path: "/homeroom", label: "My Homeroom", icon: <Users size={18} /> },
     { id: "marks", path: "/marks", label: "Marks", icon: <Award size={18} /> },
-    { id: "students", path: "/students", label: "My Students", icon: <Users size={18} /> },
+    { id: "students", path: "/students", label: "My Students", icon: <UserCheck size={18} /> },
     { id: "register", path: "/register", label: "Registration", icon: <UserPlus size={18} /> },
     { id: "guide", path: "/guide", label: "Guide", icon: <BookOpen size={18} /> },
   ];
@@ -61,12 +61,12 @@ function TeacherRoutes() {
       <Route element={<Layout navItems={navItems} roleLabel="Teacher" />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<TeacherPortal activePage="dashboard" />} />
-        <Route path="/attendance" element={<TeacherPortal activePage="attendance" />} />
+        <Route path="/homeroom" element={<TeacherPortal activePage="homeroom" />} />
         <Route path="/marks" element={<TeacherPortal activePage="marks" />} />
         <Route path="/students" element={<TeacherPortal activePage="students" />} />
         <Route path="/register" element={<TeacherPortal activePage="register" />} />
         <Route path="/profile" element={<TeacherPortal activePage="profile" />} />
-        <Route path="/guide" element={<GuidePage />} />
+        <Route path="/guide" element={<TeacherPortal activePage="guide" />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

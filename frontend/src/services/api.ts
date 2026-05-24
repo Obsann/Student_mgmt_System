@@ -99,6 +99,7 @@ const mapAttendance = (a: ApiAttendance): AttendanceRecord => ({
   subject_id: typeof a.subjectId === "string" ? a.subjectId : a.subjectId?._id,
   date: a.date,
   status: a.status,
+  remarks: a.remarks || "",
   recorded_by: a.recordedBy,
 });
 
@@ -538,6 +539,7 @@ export const api = {
       subjectId: r.subject_id,
       date: r.date,
       status: r.status,
+      remarks: r.remarks || "",
     }));
     return apiFetch<{ message: string; records: ApiAttendance[] }>(`${API_BASE_URL}/attendance/bulk`, {
       method: "POST",

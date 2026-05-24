@@ -107,8 +107,8 @@ export default function StudentRegistrationForm() {
         guardian_relation: data.guardianRelation,
         parent_phone: data.parentPhone,
         personal_email: data.personalEmail,
-        grade: data.grade,
-        section: data.section,
+        grade: teacher?.assigned_grade || data.grade,
+        section: teacher?.assigned_section || data.section,
         roll_number: data.rollNumber,
         status: "active",
         enrolled_date: new Date().toISOString(),
@@ -221,11 +221,25 @@ export default function StudentRegistrationForm() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-wider">Current Grade</label>
-                  <select {...register("grade")} className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <select 
+                    {...register("grade")} 
+                    className={`w-full px-4 py-3 rounded-xl border border-slate-100 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none ${
+                      teacher?.assigned_grade ? 'bg-slate-100 opacity-70 pointer-events-none' : 'bg-slate-50'
+                    }`}
+                    tabIndex={teacher?.assigned_grade ? -1 : 0}
+                  >
                     {["9", "10", "11", "12"].map(g => <option key={g} value={g}>Grade {g}</option>)}
                   </select>
                 </div>
-                <Input label="Section" {...register("section")} error={errors.section?.message} placeholder="e.g. A" />
+                <Input 
+                  label="Section" 
+                  {...register("section")} 
+                  error={errors.section?.message} 
+                  placeholder="e.g. A" 
+                  readOnly={!!teacher?.assigned_section}
+                  className={teacher?.assigned_section ? 'bg-slate-100 opacity-70 pointer-events-none' : ''}
+                  tabIndex={teacher?.assigned_section ? -1 : 0}
+                />
                 <Input label="Roll Number" {...register("rollNumber")} error={errors.rollNumber?.message} />
               </div>
             </div>
@@ -294,14 +308,14 @@ export default function StudentRegistrationForm() {
   );
 }
 
-const Input = ({ label, error, ...props }: any) => (
+const Input = ({ label, error, className, ...props }: any) => (
   <div className="space-y-1.5">
     <label className="text-xs font-black text-slate-400 uppercase tracking-wider">{label}</label>
     <input 
       {...props} 
       className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-sm font-bold transition-all focus:ring-2 outline-none ${
         error ? "border-red-200 ring-red-50" : "border-slate-100 focus:ring-indigo-500"
-      }`}
+      } ${className || ''}`}
     />
     {error && <p className="text-[10px] font-bold text-red-500">{error}</p>}
   </div>

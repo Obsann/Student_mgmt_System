@@ -41,13 +41,43 @@ router.get("/", protect, async (req, res) => {
       ];
     }
 
-    // Teachers can only see their assigned class (and all statuses for enrollment review)
+    // Teachers can only see their assigned homeroom class and students in the subjects they teach
     if (req.user.role === "teacher") {
       const Teacher = require("../models/Teacher");
+      const Subject = require("../models/Subject");
       const teacher = await Teacher.findById(req.user.refId);
+      
       if (teacher) {
-        filter.grade = teacher.assignedGrade;
-        filter.section = teacher.assignedSection;
+        const teacherSubjects = await Subject.find({ teacherId: teacher._id, isDeleted: { $ne: true } });
+        
+        const orConditions = [];
+        
+        // Add homeroom class condition
+        if (teacher.assignedGrade && teacher.assignedSection) {
+          orConditions.push({ grade: teacher.assignedGrade, section: teacher.assignedSection });
+        }
+        
+        // Add subjects condition
+        teacherSubjects.forEach(sub => {
+          const subFilter = { grade: sub.grade };
+          if (sub.sections && sub.sections.length > 0) {
+            subFilter.section = { $in: sub.sections };
+          }
+          orConditions.push(subFilter);
+        });
+
+        if (orConditions.length > 0) {
+          if (filter.$or) {
+             // Preserve existing search $or logic using $and
+             filter.$and = [{ $or: filter.$or }, { $or: orConditions }];
+             delete filter.$or;
+          } else {
+             filter.$or = orConditions;
+          }
+        } else {
+          // Teacher has no homeroom and no subjects, return empty
+          filter._id = null;
+        }
       }
     }
 

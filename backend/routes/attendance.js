@@ -95,7 +95,7 @@ router.post("/bulk", protect, authorize("admin", "teacher"), async (req, res) =>
     for (const r of records) {
       const record = await Attendance.findOneAndUpdate(
         { studentId: r.studentId, subjectId: r.subjectId, date: new Date(r.date) },
-        { status: r.status, recordedBy: req.user._id },
+        { status: r.status, remarks: r.remarks || "", recordedBy: req.user._id },
         { new: true, upsert: true, runValidators: true }
       );
       results.push(record);
